@@ -1,12 +1,13 @@
-import { IncomingMessage, ServerResponse } from 'http';
+import { Route } from './router';
+import { FinalRequestObject } from './server';
 
 export class RequestHandler {
     constructor() {
         //
     }
 
-    handle(request: {req: IncomingMessage, res: ServerResponse}) {
-        
+    handle(fro: FinalRequestObject): void {
+        fro.route.handler(fro);
     }
 
 }

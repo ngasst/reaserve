@@ -1,9 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { Observable } from '@reactivex/rxjs';
-import { readdir, readFile } from 'fs-extra';
-import * as Path from 'path';
-import * as webpack from 'webpack';
-const wpnu = require('webpack-node-utils');
+import { ReqRes } from './server';
+import { Policy } from './policy';
+import { FinalRequestObject } from './server';
 
 export class Router {
     routes$: Observable<Route>;
@@ -11,12 +10,21 @@ export class Router {
         this.routes$ = Observable.from(routes);
 }
 
-    match(req: IncomingMessage): Observable<Route> {
-        return this.routes$.filter((r: Route) => r.path === req.url);
+    match(reqres: ReqRes): Observable<MatchedRequest> {
+        return this.routes$
+            .filter((r: Route) => r.path === reqres.req.url)
+            //map to a route and reqres object and return it
+            .map(r => Object.assign({route: r, reqres: reqres}));
     }
 }
 
 export interface Route {
     path: string;
-    handler: (req: IncomingMessage, res: ServerResponse) => void;
+    policies: string[];
+    handler: (finalRequestObject: FinalRequestObject) => void;
+}
+
+export interface MatchedRequest {
+    route: Route;
+    reqres: ReqRes
 }

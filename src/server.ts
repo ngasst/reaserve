@@ -1,6 +1,8 @@
 import { Observable, Observer } from '@reactivex/rxjs';
 import { createServer, ServerRequest, ServerResponse, Server as HttpServer, IncomingMessage, request, RequestOptions } from 'http';
 import { createServer as createSSLServer, Server as HttpsServer, request as secureRequest } from 'https';
+import { Route } from './router';
+import { Response, IResponse } from './response';
 
 export class Server {
     constructor(private protocol: string = 'http') {
@@ -20,51 +22,6 @@ export class Server {
         });
     }
 
-    getJSON(options: RequestOptions) {
-        return Observable.create((observer) => {
-            let req = this.protocol === 'http' ? this.getRequest(options, observer) : this.getSecureRequest(options, observer);
-        });
-    }
-
-    private getRequest(options: RequestOptions, observer: Observer<any>) {
-        let req = request(options, (res: IncomingMessage) => {
-            let rawData: string = '';
-            res.on('data', (chunk: string) => rawData += chunk);
-            res.on('end', () => {
-                let data: any;
-                try {
-                    data = JSON.parse(rawData);
-                } catch (error) {
-                    observer.error(error);
-                }
-
-                observer.next(data);
-                observer.complete();
-            });
-        });
-
-        req.on('error', (err) => observer.error(err));
-        req.end();
-    }
-
-    private getSecureRequest(options: RequestOptions, observer: Observer<any>) {
-        let req = secureRequest(options, (res: IncomingMessage) => {
-            let rawData: string = '';
-            res.on('data', (chunk: string) => rawData += chunk);
-            res.on('end', () => {
-                let data: any;
-                try {
-                    data = JSON.parse(rawData);
-                } catch (error) {
-                    observer.error(error);
-                }
-
-                observer.next(data);
-                observer.complete();
-            });
-        });
-    }
-
     private getHttpServer(observer: Observer<{req: IncomingMessage, res: ServerResponse}>): HttpServer {
         let server: HttpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
             observer.next({req: req, res: res});
@@ -79,4 +36,19 @@ export class Server {
         });
         return server;
     }
+}
+
+export interface ReqRes {
+    req: IncomingMessage;
+    res: ServerResponse | Response | IResponse;
+}
+
+export interface FinalRequestObject {
+    route: Route;
+    reqres: {
+        req: IncomingMessage;
+        res: Response;
+    };
+    pass: boolean;
+
 }

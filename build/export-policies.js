@@ -62,7 +62,7 @@ require("source-map-support").install();
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 354);
+/******/ 	return __webpack_require__(__webpack_require__.s = 353);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -81,7 +81,7 @@ module.exports = require("path");
 
 /***/ },
 
-/***/ 354:
+/***/ 353:
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -89,8 +89,8 @@ module.exports = require("path");
 var Path = __webpack_require__(20);
 var fs_extra_1 = __webpack_require__(19);
 var args = process.argv.filter(function (a, i) { return i > 1; });
-exportRoutes(args[0]);
-function exportRoutes(folderPath) {
+exportPolicies(args[0]);
+function exportPolicies(folderPath) {
     var path = Path.resolve(folderPath);
     getFiles(path)
         .then(function (files) {
@@ -119,12 +119,12 @@ function getDeclaration(files) {
         var imports = files
             .filter(function (f) { return f.indexOf('index') === -1; })
             .map(function (f) { return f.slice(0, f.length - 3); })
-            .map(function (f) { return "import { routes as " + f + " } from './" + f + "';\r\n"; })
-            .reduce(function (acc, val) { return acc.concat(val); }, "import { Route } from '../src/router';\r\n");
+            .map(function (f) { return "import { policies as " + f + " } from './" + f + "';\r\n"; })
+            .reduce(function (acc, val) { return acc.concat(val); }, "import { Policy } from '../src/policy';\r\n");
         var exported = files
             .filter(function (f) { return f.indexOf('index') === -1; })
             .map(function (f) { return f.slice(0, f.length - 3); });
-        var exdecl = "export const routes: Route[] = [].concat(..." + exported.toString() + ")";
+        var exdecl = "export const policies: Policy[] = [].concat(..." + exported.toString() + ")";
         var declarations = imports.concat("\r\n").concat(exdecl);
         resolve(declarations);
     });
@@ -143,4 +143,4 @@ function getFiles(path) {
 /***/ }
 
 /******/ });
-//# sourceMappingURL=export-routes.js.map
+//# sourceMappingURL=export-policies.js.map
