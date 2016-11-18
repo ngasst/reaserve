@@ -3,6 +3,7 @@ import { createServer, ServerRequest, ServerResponse, Server as HttpServer, Inco
 import { createServer as createSSLServer, Server as HttpsServer, request as secureRequest } from 'https';
 import { Route } from './router';
 import { Response, IResponse } from './response';
+import { Request } from './request';
 
 export class Server {
     constructor(private protocol: string = 'http') {
@@ -51,4 +52,9 @@ export interface FinalRequestObject {
     };
     pass: boolean;
 
+}
+
+export interface IncomingObject {
+    req: Request;
+    res: Response;
 }
