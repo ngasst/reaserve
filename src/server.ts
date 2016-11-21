@@ -2,8 +2,8 @@ import { Observable, Observer } from '@reactivex/rxjs';
 import { createServer, ServerRequest, ServerResponse, Server as HttpServer, IncomingMessage, request, RequestOptions } from 'http';
 import { createServer as createSSLServer, Server as HttpsServer, request as secureRequest } from 'https';
 import { Route } from './router';
-import { Response, IResponse } from './response';
-import { Request } from './request';
+import { Response } from './response';
+import { Request, RequestResponse } from './request';
 
 export class Server {
     constructor(private protocol: string = 'http') {
@@ -11,7 +11,7 @@ export class Server {
     }
 
     server(port: number, protocol: string = this.protocol) {
-        return Observable.create((observer: Observer<{req: IncomingMessage, res: ServerResponse}>) => {
+        return Observable.create((observer: Observer<{req: Request, res: ServerResponse}>) => {
             let server = protocol === 'http' ? this.getHttpServer(observer) : this.getHttpsServer(observer);
 
             server.listen(port);
@@ -23,33 +23,26 @@ export class Server {
         });
     }
 
-    private getHttpServer(observer: Observer<{req: IncomingMessage, res: ServerResponse}>): HttpServer {
-        let server: HttpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+    private getHttpServer(observer: Observer<{req: Request, res: ServerResponse}>): HttpServer {
+        let server: HttpServer = createServer((req: Request, res: ServerResponse) => {
             observer.next({req: req, res: res});
         });
         
         return server;
     }
 
-    private getHttpsServer(observer: Observer<{req: IncomingMessage, res: ServerResponse}>): HttpsServer {
-        let server: HttpsServer = createSSLServer((req: IncomingMessage, res: ServerResponse) => {
+    private getHttpsServer(observer: Observer<{req: Request, res: ServerResponse}>): HttpsServer {
+        let server: HttpsServer = createSSLServer((req: Request, res: ServerResponse) => {
             observer.next({req: req, res: res});
         });
         return server;
     }
 }
 
-export interface ReqRes {
-    req: IncomingMessage;
-    res: ServerResponse | Response | IResponse;
-}
-
 export interface FinalRequestObject {
     route: Route;
-    reqres: {
-        req: IncomingMessage;
-        res: Response;
-    };
+    req: Request;
+    res: Response;
     pass: boolean;
 
 }

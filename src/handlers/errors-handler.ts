@@ -7,13 +7,7 @@ export class ErrorHandler {
         res.error.notFound();
     }
 
-    static post(req: Request, res: Response): void {
-        let sub: Subscription = req.body.subscribe(data => {
-            res.json(data);
-        },
-        () => {
-            sub.unsubscribe();
-        },
-        (err) => console.log(err));
+    static policyError(req: Request, res: Response): void {
+        res.error.policyFailed();
     }
 }

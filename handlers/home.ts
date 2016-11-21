@@ -1,6 +1,7 @@
 import { Subscription } from '@reactivex/rxjs';
 import { Request } from '../src/request';
 import { Response } from '../src/response';
+import { inspect } from 'util';
 
 export class HomeHandler {
     static main(req: Request, res: Response): void {
@@ -8,6 +9,7 @@ export class HomeHandler {
     }
 
     static post(req: Request, res: Response): void {
+        //console.log(inspect(req, true, 5, true));
         let sub: Subscription = req.body.subscribe(data => {
             res.json(data);
         },
@@ -26,7 +28,6 @@ export class HomeHandler {
     static getByIdAndUsername(req: Request, res: Response): void {
         let params: any = req.params;
         console.log(params);
-        console.log(req.parsedUrl);
         res.json(params);
     }
 }

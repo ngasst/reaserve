@@ -1,9 +1,8 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import { Observable } from '@reactivex/rxjs';
-import { ReqRes } from './server';
 import { Policy } from './policy';
-import { FinalRequestObject } from './server';
-import { Request } from 'request';
+import { FinalRequestObject, IncomingObject } from './server';
+import { Request, RequestResponse, MatchedRequest } from 'request';
 import { Response } from 'response';
 import { ErrorHandler } from './handlers/errors-handler';
 
@@ -12,8 +11,7 @@ export class Router {
     constructor(routes: Route[]) {
         this.routes$ = Observable.from(routes);
 }
-
-    match(reqres: ReqRes): Observable<MatchedRequest> {
+    match(reqres: RequestResponse): Observable<MatchedRequest> {
         return this.routes$
             .map(r => this.parseUrls(r, reqres))
             .filter((mr: MatchedRequest) => {
@@ -26,11 +24,11 @@ export class Router {
                 return test;
             })
             .defaultIfEmpty(Object.assign({}, {reqres: reqres, route: {path: '/route-not-found', verb: 'GET', policies: [], handler: ErrorHandler.routeNotFound}}))
-            .do(r => console.log(r.route.path, r.reqres.req.url))
+            .do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
             //.do(r => console.log(r));
     }
 
-    parseUrls(route: Route, reqres: ReqRes): MatchedRequest {
+    parseUrls(route: Route, reqres: RequestResponse): MatchedRequest {
         let path: string = route.path;
         let url: string = reqres.req.url;
         let labels: string[] = path.match(/(:[^\/|\s]+)/g);
@@ -60,7 +58,10 @@ export class Router {
         } else {
             mr = {
                 route: route,
-                reqres: reqres
+                reqres: {
+                    req: Object.assign({}, reqres.req, {unparsedUrl: url}),
+                    res: reqres.res
+                }
             }
         }
         //console.log(mr.route.path, labels, reqres.req.url, reqres.req.parsedUrl);
@@ -73,10 +74,5 @@ export interface Route {
     verb: string;
     policies: string[];
     handler: (req: Request, res: Response) => void;
-}
-
-export interface MatchedRequest {
-    route: Route;
-    reqres: ReqRes
 }
 

@@ -32,6 +32,10 @@ export class ResponseLoader {
             notFound: () => {
                 this.response.writeHead(404, {'Content-Type': 'application/json'});
                 this.response.end(JSON.stringify({success: false, message: 'Resource Not Found'}));
+            },
+            policyFailed: () => {
+                this.response.writeHead(401, {'Content-Type': 'application/json'});
+                this.response.end(JSON.stringify({success: false, message: 'One or more policies prevented access to this route.'}));
             }
         };
     }
@@ -49,5 +53,6 @@ export interface Response extends ServerResponse {
         generic: (status?: number, message?: string) => void;
         server: () => void;
         notFound: () => void;
+        policyFailed: () => void;
     }
 }

@@ -1,48 +1,63 @@
 import { Observer, Observable } from '@reactivex/rxjs';
-import { IncomingMessage } from 'http';
+import { IncomingMessage, ServerResponse, ClientRequest } from 'http';
 import { parse } from 'url';
+import { Route } from './router';
+import { Response } from './response';
+
 
 export class RequestExtractor {
     request: Request;
     verb: string;
 
-    constructor(req: IncomingMessage) {
+    constructor(req: Request) {
         this.request = req;
         this.verb = this.request.method;
     }
 
-    extract() {
+    static extract(req: Request) {
         //params
-        if (this.verb.toUpperCase() === ('GET' || 'DELETE')) {
-            this.request.params = this.getParams(this.request);
-            return this.request;
+        if (req.method.toUpperCase() === ('GET' || 'DELETE')) {
+            let request: Request = req;
+            request.params = this.getParams(req);
+            return request;
         }
 
-        
         //body
-        if (this.verb.toUpperCase() === ('POST' || 'UPDATE' || 'DELETE' || 'PATCH')) {
-            this.request.body = this.getJSON(this.request);
-            return this.request;
+        if (req.method.toUpperCase() === ('POST' || 'UPDATE' || 'DELETE' || 'PATCH')) {
+            let request: Request = req;
+            request.body = this.getJSON(req);
+            return request;
         }
 
     }
 
-    private getJSON(req: IncomingMessage): Observable<any> {
+    private static getJSON(req: Request): any {
         return Observable
-        	.fromEvent(req, 'data')
+            .fromEvent(req, 'data')
             .buffer(Observable.fromEvent(req, 'end'))
             .map(d => JSON.parse(d.toString()));
     }
 
-    private getParams(req: Request) {
+    private static getParams(req: Request) {
         let url: string = req.url;
         let parsed: any = parse(url, true).query;
         return parsed;
     }
 }
 
+
 export interface Request extends IncomingMessage {
     body?: any;
     params?: any;
     unparsedUrl?: string;
+}
+
+export interface MatchedRequest {
+    route: Route;
+    reqres: RequestResponse
+}
+
+export interface RequestResponse {
+    req: Request;
+    res: Response;
 }
