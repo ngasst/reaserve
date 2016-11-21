@@ -15,51 +15,47 @@ export class Router {
 
     match(reqres: ReqRes): Observable<MatchedRequest> {
         return this.routes$
-            .merge(Observable.of({path: '/route-not-found', verb: 'GET', policies: [], handler: ErrorHandler.routeNotFound}))
             .map(r => this.parseUrls(r, reqres))
             .filter((mr: MatchedRequest) => {
                 let test: boolean = 
                 (
-                    mr.reqres.req !== undefined
-                    && mr.route.path === mr.reqres.req.url
+                    typeof mr.reqres.req !== 'undefined'
+                    && mr.route.path === mr.reqres.req.unparsedUrl
                     && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase()
-                )
-                ||
-                (
-                    !mr.reqres.req
-                    && mr.route.path === '/route-not-found'
                 );
                 return test;
             })
+            .defaultIfEmpty(Object.assign({}, {reqres: reqres, route: {path: '/route-not-found', verb: 'GET', policies: [], handler: ErrorHandler.routeNotFound}}))
+            .do(r => console.log(r.route.path, r.reqres.req.url))
             //.do(r => console.log(r));
     }
 
     parseUrls(route: Route, reqres: ReqRes): MatchedRequest {
         let path: string = route.path;
         let url: string = reqres.req.url;
-        let newPath: string;
-        let newUrl: string;
-        let newRoute: Route;
-        let mr: MatchedRequest;
-        
         let labels: string[] = path.match(/(:[^\/|\s]+)/g);
         let base: string = path.match(/(^\/[a-zA-Z-_\/]*)/g)[0];
-        console.log(labels);
-        if ((labels !== undefined && labels !== null && labels.length > 0)) {
-            let values: string[] = url.replace(base, '').split('/');
-            let pairs: string[] = labels.map((l, i) => `${l}=${values[i]}`);
-            newUrl = base.concat('/?').concat(pairs.join('&'));
-            let newPath = url;
-            newRoute = {
+        labels = labels === null ? [] : labels;
+        let valuesArray: string[] = url.replace(base, '').split('/');
+        let values = valuesArray.filter(s => s.length > 1);
+        let newPath: string = base.length > 1 ? base.concat('/').concat(values.join('/')) : base.concat(values.join('/'));
+        
+        let mr: MatchedRequest;
+                
+        if ((labels.length > 0 && labels.length === values.length)) {
+            //console.log(labels);
+            let pairs: string[] = labels.map((l, i) => `${l}=${values[i]}`).map(s => s.slice(1, s.length));
+	        let newUrl: string = base.concat('?').concat(pairs.join('&'));
+	        let newRoute: Route = {
                 handler: route.handler,
                 policies: route.policies,
                 verb: route.verb,
                 path: newPath
             }
-            let newReq: IncomingMessage = Object.assign({}, reqres.req, {url: newUrl});
+            let newReq: Request = Object.assign(reqres.req, {url: newUrl, unparsedUrl: url});
             mr = {
                 route: newRoute,
-                reqres: Object.assign({}, reqres, {req: newReq})
+                reqres: Object.assign(reqres, {req: newReq})
             }
         } else {
             mr = {
@@ -67,7 +63,7 @@ export class Router {
                 reqres: reqres
             }
         }
-        
+        //console.log(mr.route.path, labels, reqres.req.url, reqres.req.parsedUrl);
         return mr;
     }
 }

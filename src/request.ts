@@ -28,25 +28,13 @@ export class RequestExtractor {
     }
 
     private getJSON(req: IncomingMessage): Observable<any> {
-        return Observable.create((observer) => {
-            let rawData: string = '';
-            req.on('data', (chunk: string) => rawData += chunk);
-            req.on('end', () => {
-                let data: any;
-                try {
-                    data = JSON.parse(rawData);
-                } catch (error) {
-                    observer.error(error);
-                }
-                observer.next(data);
-                observer.complete();
-            });
-
-            req.on('error', (err) => observer.error(err));
-        });
+        return Observable
+        	.fromEvent(req, 'data')
+            .buffer(Observable.fromEvent(req, 'end'))
+            .map(d => JSON.parse(d.toString()));
     }
 
-    private getParams(req: IncomingMessage) {
+    private getParams(req: Request) {
         let url: string = req.url;
         let parsed: any = parse(url, true).query;
         return parsed;
@@ -56,4 +44,5 @@ export class RequestExtractor {
 export interface Request extends IncomingMessage {
     body?: any;
     params?: any;
+    unparsedUrl?: string;
 }

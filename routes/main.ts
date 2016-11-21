@@ -14,5 +14,17 @@ export const routes: Route[] = [
         verb: 'POST',
         handler: HomeHandler.post,
         policies: ['main']
+    },
+    {
+        path: '/:id',
+        verb: 'GET',
+        handler: HomeHandler.getById,
+        policies: []
+    },
+    {
+        path: '/:id/:username',
+        verb: 'GET',
+        handler: HomeHandler.getByIdAndUsername,
+        policies: []
     }
 ]

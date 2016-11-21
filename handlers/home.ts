@@ -16,4 +16,17 @@ export class HomeHandler {
         },
         (err) => console.log(err));
     }
+
+    static getById(req: Request, res: Response): void {
+        let params: any = req.params;
+        console.log(params);
+        res.json(params);
+    }
+
+    static getByIdAndUsername(req: Request, res: Response): void {
+        let params: any = req.params;
+        console.log(params);
+        console.log(req.parsedUrl);
+        res.json(params);
+    }
 }

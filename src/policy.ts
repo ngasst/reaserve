@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable } from '@reactivex/rxjs';
 import { ReqRes } from './server';
 import { Route, MatchedRequest } from './router';
 

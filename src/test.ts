@@ -12,16 +12,20 @@ const router: Router = new Router(routes);
 const evaluator: PolicyEvaluator = new PolicyEvaluator(policies);
 const handler: RequestHandler = new RequestHandler();
 server.server(3000)
-.map((reqres: ReqRes) => {
-    let reqex = new RequestExtractor(reqres.req);
-    let resload = new ResponseLoader(reqres.res);
+//match the route from the request to the app routes, loaded above [import {routes} from './routes']
+.map((r: IncomingObject) => router.match(r))
+.map((r: IncomingObject) => {
+    let reqex = new RequestExtractor(r.req);
+    let resload = new ResponseLoader(r.res);
     let response: Response = resload.load();
     let request: Request = reqex.extract();
     let obj: IncomingObject = {req: request, res: response};
     return obj;
 })
-//match the route from the request to the app routes, loaded above [import {routes} from './routes']
-.map((r: IncomingObject) => router.match(r))
+/*.map((r: IncomingObject) => {
+    let req: Request = new RequestExtractor(r.req).extract();
+	return {req: req, res: r.res}
+})*/
 //handle policies for this route here, loaded above [import { policies } from './policies']
 .switchMap(r => r)
 .map((mr: MatchedRequest) => evaluator.evaluate(mr))
@@ -29,7 +33,6 @@ server.server(3000)
 .switchMap((er: EvaluatedMatchedRequest) => er)
 //Now that we have gone through the basic request filtration, let's decide if we handle this request or if we reject it
 .do((fr: FinalRequestObject) => {
-    console.log(fr.pass);
     if (!fr.pass)
     fr.reqres.res.unauthorized();
 })
