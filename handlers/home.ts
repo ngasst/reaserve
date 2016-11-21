@@ -2,10 +2,16 @@ import { Subscription } from '@reactivex/rxjs';
 import { Request } from '../src/request';
 import { Response } from '../src/response';
 import { inspect } from 'util';
+import { readJSON } from 'fs-extra';
+import { renderFile } from 'pug';
 
 export class HomeHandler {
     static main(req: Request, res: Response): void {
-        res.ok();
+        readJSON('../hrm/output.json', (err, data) => {
+            let display: string[] = data.map(d => d.name);
+            let html = renderFile('views/main.pug', data);
+            res.render(html);
+        });
     }
 
     static post(req: Request, res: Response): void {

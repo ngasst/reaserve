@@ -62,11 +62,16 @@ require("source-map-support").install();
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 21);
+/******/ 	return __webpack_require__(__webpack_require__.s = 22);
 /******/ })
 /************************************************************************/
 /******/ ([
-/* 0 */,
+/* 0 */
+/***/ function(module, exports) {
+
+module.exports = require("fs-extra");
+
+/***/ },
 /* 1 */,
 /* 2 */
 /***/ function(module, exports) {
@@ -162,7 +167,7 @@ exports.RequestHandler = RequestHandler;
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(2);
-var url_1 = __webpack_require__(17);
+var url_1 = __webpack_require__(18);
 var RequestExtractor = (function () {
     function RequestExtractor(req) {
         this.request = req;
@@ -221,6 +226,36 @@ var ResponseLoader = (function () {
             if (message === void 0) { message = 'You are not authorized to access this resource.'; }
             _this.response.writeHead(401, { 'Content-Type': 'application/json' });
             _this.response.end(JSON.stringify({ success: false, message: message }));
+        };
+        this.response.render = function (html) {
+            _this.response.writeHead(200, { 'Content-Type': 'text/html' });
+            _this.response.end(html);
+            /*readFile(path, 'utf8', (err: NodeJS.ErrnoException, html: string) => {
+                if (err) {
+                    this.response.writeHead(500, {'Content-Type': 'text/html'});
+                    this.response.end(`
+                    <h1>Error</h1>
+                    <h2>${err}</h2>
+                    `);
+                }
+                let regex = /\${[a-z_]+\.?([a-z_]+?)?}/gm;
+                let keys: string[] = [];
+                let match = regex.exec(html);
+                while(match != null) {
+                    keys.push(match[1]);
+                    match = regex.exec(html);
+                }
+                keys = keys.filter(s => typeof s !== 'undefined');
+                let compiled: string = html.replace('${data}', JSON.stringify(data));
+                let i = 0;
+                while(i < keys.length) {
+                    let needle: string = '${data.'+keys[i]+'}';
+                    compiled = compiled.replace(needle, data[keys[i]]);
+                    i = i+1;
+                }
+                this.response.writeHead(200, {'Content-Type': 'text/html'});
+                this.response.end(compiled);
+            });*/
         };
         this.response.error = {
             generic: function (status, message) {
@@ -366,15 +401,21 @@ exports.Server = Server;
 
 /***/ },
 /* 12 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
+var fs_extra_1 = __webpack_require__(0);
+var pug_1 = __webpack_require__(17);
 var HomeHandler = (function () {
     function HomeHandler() {
     }
     HomeHandler.main = function (req, res) {
-        res.ok();
+        fs_extra_1.readJSON('../hrm/output.json', function (err, data) {
+            var display = data.map(function (d) { return d.name; });
+            var html = pug_1.renderFile('views/main.pug', data);
+            res.render(html);
+        });
     };
     HomeHandler.post = function (req, res) {
         //console.log(inspect(req, true, 5, true));
@@ -464,13 +505,19 @@ module.exports = require("https");
 /* 17 */
 /***/ function(module, exports) {
 
+module.exports = require("pug");
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
 module.exports = require("url");
 
 /***/ },
-/* 18 */,
 /* 19 */,
 /* 20 */,
-/* 21 */
+/* 21 */,
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
