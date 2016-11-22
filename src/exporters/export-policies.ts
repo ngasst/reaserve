@@ -1,8 +1,6 @@
 import * as Path from 'path';
 import { readdir, writeFile } from 'fs-extra';
 
-let args: string [] = process.argv.filter((a, i) => i > 1);
-exportPolicies(args[0]);
 
 export function exportPolicies(folderPath: string) {
     const path: string = Path.resolve(folderPath);

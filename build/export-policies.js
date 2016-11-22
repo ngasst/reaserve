@@ -62,7 +62,7 @@ require("source-map-support").install();
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 19);
+/******/ 	return __webpack_require__(__webpack_require__.s = 11);
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -74,22 +74,13 @@ module.exports = require("fs-extra");
 
 /***/ },
 
-/***/ 1:
-/***/ function(module, exports) {
-
-module.exports = require("path");
-
-/***/ },
-
-/***/ 19:
+/***/ 11:
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
-var Path = __webpack_require__(1);
+var Path = __webpack_require__(2);
 var fs_extra_1 = __webpack_require__(0);
-var args = process.argv.filter(function (a, i) { return i > 1; });
-exportPolicies(args[0]);
 function exportPolicies(folderPath) {
     var path = Path.resolve(folderPath);
     getFiles(path)
@@ -140,6 +131,13 @@ function getFiles(path) {
     });
 }
 
+
+/***/ },
+
+/***/ 2:
+/***/ function(module, exports) {
+
+module.exports = require("path");
 
 /***/ }
 

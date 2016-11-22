@@ -7,7 +7,7 @@ export class RequestHandler {
         //
     }
 
-    handle(handler: (req: Request, res: Response) => void, req: Request, res: Response): void {
+    static handle(handler: (req: Request, res: Response) => void, req: Request, res: Response): void {
         handler(req, res);
     }
 

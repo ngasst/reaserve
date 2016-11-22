@@ -33,8 +33,8 @@ function createConfig(isDebug) {
 		target: "node",
 		devtool: "source-map",
 		entry: {
-			index: "./src/index.ts",
-			test: "./src/test.ts",
+			index: "./index.ts",
+			test: "./test.ts",
 			"export-routes": "./src/exporters/export-routes",
 			"export-policies": "./src/exporters/export-policies",
 			"export-responses": "./src/exporters/export-responses"
