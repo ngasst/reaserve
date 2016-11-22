@@ -2437,6 +2437,10 @@ node-libs-browser@^1.0.0:
     util "~0.10.3"
     vm-browserify "0.0.4"
 
+node-mime:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/node-mime/-/node-mime-1.0.0.tgz#359a91f781e179615ac18a2b282d0c26e681d454"
+
 node-pre-gyp@^0.6.29:
   version "0.6.31"
   resolved "https://registry.yarnpkg.com/node-pre-gyp/-/node-pre-gyp-0.6.31.tgz#d8a00ddaa301a940615dbcc8caad4024d58f6017"

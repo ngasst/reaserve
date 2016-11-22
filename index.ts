@@ -6,32 +6,70 @@ import { PolicyEvaluator, EvaluatedMatchedRequest, Policy } from './src/policy';
 import { ResponseLoader, Response } from './src/response';
 import { RequestExtractor, Request, RequestResponse, MatchedRequest } from './src/request';
 import { ErrorHandler } from './src/handlers/errors-handler';
+import * as Path from 'path';
+import { createReadStream, stat, Stats, ReadStream } from 'fs-extra';
+
+const mime = require('mime');
 
 
 
-export function createServer(port: number, routes: Route[], policies: Policy[], methodsAllowed?: string[], allowedOrigins?: string[]|string, allowedHeaders?: string[]): Observable<FinalRequestObject> {
+export function createServer(port: number, routes: Route[], policies: Policy[], methodsAllowed?: string[], allowedOrigins?: string[]|string, allowedHeaders?: string[], assetsFolderName: string = 'assets'): Observable<FinalRequestObject> {
     const server: Server = new Server();
     const router: Router = new Router(routes);
     const evaluator: PolicyEvaluator = new PolicyEvaluator(policies);
     
     return server.server(port)
     .map((r: RequestResponse) => {
-        let response: Response = r.res;
-        if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
-            response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
-        } else {
-            if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
-                response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+        if (r.req.method === 'OPTIONS') {
+            let response: Response = r.res;
+            if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
+                response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
+            } else {
+                if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
+                    response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+                }
             }
-        }
 
-        if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
-            response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
+            if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
+                response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
+            
+            if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
+                response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
+            response.end();
+        }
         
-        if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
-            response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
-        console.log(response.getHeader('Access-Control-Allow-Origin'));
+    })
+    .map((r: RequestResponse) => {
+        //give the response the ability to send back responses
+        response.sendFile = (path: string, ct: string, size?: number): void => {
+            let rs: ReadStream = createReadStream(path);
+                r.res.setHeader('Content-Type', ct);
+                if (size !== null && typeof size !== 'undefined')
+                    r.res.setHeader('Content-Length', `${size}`);
+                r.res.writeHead(200);
+                rs.pipe(r.res);
+        }
         return {req: r.req, res: response};
+    })
+    .do((r: RequestResponse) => {
+        let regex = `^\/${assetsFolderName}\/?[^\s]+`;
+        let match = r.req.url.match(regex);
+        let testAssets: boolean = match !== null;
+        if(testAssets) {
+            let type: string = mime.lookup(r.req.url);
+            console.log(type);
+            let path: string = Path.join(process.cwd(), r.req.url);
+            stat(path, (err, stats: Stats) => {
+                if (err) {
+
+                    console.log(err);
+                    r.res.writeHead(500, {'Content-Type': 'application/text'});
+                    r.res.end(err);
+                }
+                r.res.sendFile(path, type, stats.size);
+            });
+        }
+        console.log('isAssetReq: ', testAssets, match);
     })
     // for some reason, rxjs throws an error when trying to access the requent event data after it has been matched.
     // check here if this is a request type that has post data and if so, extract it before matching.

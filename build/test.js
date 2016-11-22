@@ -62,7 +62,7 @@ require("source-map-support").install();
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 25);
+/******/ 	return __webpack_require__(__webpack_require__.s = 26);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -134,7 +134,7 @@ exports.PolicyEvaluator = PolicyEvaluator;
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var url_1 = __webpack_require__(18);
+var url_1 = __webpack_require__(19);
 var RequestExtractor = (function () {
     function RequestExtractor(req) {
         this.request = req;
@@ -582,6 +582,12 @@ exports.Server = Server;
 
 /***/ },
 /* 17 */
+/***/ function(module, exports) {
+
+module.exports = require("mime");
+
+/***/ },
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -592,27 +598,63 @@ var policy_1 = __webpack_require__(4);
 var response_1 = __webpack_require__(6);
 var request_1 = __webpack_require__(5);
 var errors_handler_1 = __webpack_require__(3);
-function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders) {
+var Path = __webpack_require__(2);
+var fs_extra_1 = __webpack_require__(0);
+var mime = __webpack_require__(17);
+function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, assetsFolderName) {
+    if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
     var server = new server_1.Server();
     var router = new router_1.Router(routes);
     var evaluator = new policy_1.PolicyEvaluator(policies);
     return server.server(port)
         .map(function (r) {
-        var response = r.res;
-        if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
-            response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
-        }
-        else {
-            if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
-                response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+        if (r.req.method === 'OPTIONS') {
+            var response = r.res;
+            if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
+                response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
             }
+            else {
+                if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
+                    response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+                }
+            }
+            if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
+                response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
+            if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
+                response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
+            response.end();
         }
-        if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
-            response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
-        if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
-            response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
-        console.log(response.getHeader('Access-Control-Allow-Origin'));
+    })
+        .map(function (r) {
+        //give the response the ability to send back responses
+        response.sendFile = function (path, ct, size) {
+            var rs = fs_extra_1.createReadStream(path);
+            r.res.setHeader('Content-Type', ct);
+            if (size !== null && typeof size !== 'undefined')
+                r.res.setHeader('Content-Length', "" + size);
+            r.res.writeHead(200);
+            rs.pipe(r.res);
+        };
         return { req: r.req, res: response };
+    })
+        .do(function (r) {
+        var regex = "^/" + assetsFolderName + "/?[^s]+";
+        var match = r.req.url.match(regex);
+        var testAssets = match !== null;
+        if (testAssets) {
+            var type_1 = mime.lookup(r.req.url);
+            console.log(type_1);
+            var path_1 = Path.join(process.cwd(), r.req.url);
+            fs_extra_1.stat(path_1, function (err, stats) {
+                if (err) {
+                    console.log(err);
+                    r.res.writeHead(500, { 'Content-Type': 'application/text' });
+                    r.res.end(err);
+                }
+                r.res.sendFile(path_1, type_1, stats.size);
+            });
+        }
+        console.log('isAssetReq: ', testAssets, match);
     })
         .map(function (r) {
         var rr = {
@@ -667,20 +709,10 @@ exports.PolicyEvaluator = policy_2.PolicyEvaluator;
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports) {
 
 module.exports = require("url");
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-"use strict";
-var main_1 = __webpack_require__(22);
-exports.policies = [].concat.apply([], main_1.policies);
-
 
 /***/ },
 /* 20 */
@@ -689,7 +721,7 @@ exports.policies = [].concat.apply([], main_1.policies);
 "use strict";
 "use strict";
 var main_1 = __webpack_require__(23);
-exports.routes = [].concat.apply([], main_1.routes);
+exports.policies = [].concat.apply([], main_1.policies);
 
 
 /***/ },
@@ -698,13 +730,23 @@ exports.routes = [].concat.apply([], main_1.routes);
 
 "use strict";
 "use strict";
+var main_1 = __webpack_require__(24);
+exports.routes = [].concat.apply([], main_1.routes);
+
+
+/***/ },
+/* 22 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
 var fs_extra_1 = __webpack_require__(0);
-var pug_1 = __webpack_require__(24);
+var pug_1 = __webpack_require__(25);
 var HomeHandler = (function () {
     function HomeHandler() {
     }
     HomeHandler.main = function (req, res) {
-        fs_extra_1.readJSON('../hrm/output.json', function (err, data) {
+        fs_extra_1.readJSON('../hrm/sandbox.json', function (err, data) {
             var display = data.map(function (d) { return d.name; });
             var html = pug_1.renderFile('views/main.pug', data);
             res.render(html);
@@ -734,7 +776,7 @@ exports.HomeHandler = HomeHandler;
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -742,18 +784,18 @@ exports.HomeHandler = HomeHandler;
 exports.policies = [
     {
         name: 'main',
-        method: function () { return true; }
+        method: function () { return false; }
     }
 ];
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
-var home_1 = __webpack_require__(21);
+var home_1 = __webpack_require__(22);
 exports.routes = [
     {
         path: '/',
@@ -783,21 +825,21 @@ exports.routes = [
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports) {
 
 module.exports = require("pug");
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
-var routes_1 = __webpack_require__(20);
-var policies_1 = __webpack_require__(19);
+var routes_1 = __webpack_require__(21);
+var policies_1 = __webpack_require__(20);
 var request_handler_1 = __webpack_require__(8);
-var index_1 = __webpack_require__(17);
+var index_1 = __webpack_require__(18);
 index_1.createServer(3000, routes_1.routes, policies_1.policies, null, '10.*')
     .subscribe(function (fr) {
     request_handler_1.RequestHandler.handle(fr.route.handler, fr.req, fr.res);

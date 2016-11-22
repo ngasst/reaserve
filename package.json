@@ -41,6 +41,7 @@
     "@types/pug": "^2.0.3",
     "chalk": "^1.1.3",
     "fs-extra": "^0.30.0",
+    "node-mime": "^1.0.0",
     "pluralize": "^3.0.0",
     "pug": "^2.0.0-beta6",
     "webpack-node-utils": "^2.0.0"

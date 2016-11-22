@@ -1,5 +1,5 @@
 Arguments: 
-  C:\Applic\Ide\Netbeans\nodejs\node.exe C:\Applic\Ide\Netbeans\nodejs\node_modules\yarn\bin\yarn.js add @angular/core @angular/common angular2-universal
+  C:\Applic\Ide\Netbeans\nodejs\node.exe C:\Applic\Ide\Netbeans\nodejs\node_modules\yarn\bin\yarn.js add node-mime
 
 PATH: 
   C:\Applic\Ide\Netbeans\git\mingw64\bin;C:\Applic\Ide\Netbeans\git\usr\bin;U:\bin;U:\bin;C:\Applic\Ide\Netbeans\git\mingw64\bin;C:\Applic\Ide\Netbeans\git\usr\local\bin;C:\Applic\Ide\Netbeans\git\usr\bin;C:\Applic\Ide\Netbeans\git\usr\bin;C:\Applic\Ide\Netbeans\git\mingw64\bin;C:\Applic\Ide\Netbeans\git\usr\bin;U:\bin;C:\ProgramData\Oracle\Java\javapath;C:\Applic\Oracle\product\11.2.0\client_1\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Program Files (x86)\Enterprise Vault\EVClient;C:\ProgramData\Oracle\Java\javapath;C:\Applic\Oracle\product\11.2.0\client_1\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Program Files (x86)\Enterprise Vault\EVClient;C:\Applic\Ide\Netbeans\Go\bin;C:\Applic\Ide\Netbeans\git\usr\bin;C:\Applic\Ide\Netbeans\gocode\bin;C:\Users\ndanyuzwe.g\Desktop\gcc-tdm\bin;C:\Applic\Ide\Netbeans\MinGW\bin;C:\Applic\Ide\Netbeans\nodejs;C:\Applic\Ide\Netbeans\npm;C:\Applic\Ide\Netbeans\oracleInstaClient\vc10;C:\Applic\Ide\Netbeans\oracleInstaClient;C:\Applic\Ide\Netbeans\vscode;C:\Applic\Ide\Netbeans\python27;C:\Applic\Ide\Netbeans\nodejs\node_modules\gml\build;C:\Applic\Ide\Netbeans\git\usr\bin\vendor_perl;C:\Applic\Ide\Netbeans\git\usr\bin\core_perl
@@ -16,7 +16,7 @@ Platform:
 npm manifest: 
   {
     "name": "reaserve",
-    "version": "0.1.1",
+    "version": "0.1.5",
     "description": "",
     "main": "index.js",
     "scripts": {
@@ -3967,5 +3967,5 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/yn/-/yn-1.2.0.tgz#d237a4c533f279b2b89d3acac2db4b8c795e4a63"
 
 Trace: 
-  Error: ENOENT: no such file or directory, open 'C:\Users\ndanyuzwe.g\Desktop\nodecode\reaserve\node_modules\@types\chalk\index.d.ts'
+  Error: ENOENT: no such file or directory, open 'C:\Users\ndanyuzwe.g\Desktop\nodecode\reaserve\node_modules\@types\fs-extra\index.d.ts'
       at Error (native)

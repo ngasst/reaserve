@@ -82,6 +82,7 @@ export interface Response extends ServerResponse {
     ok?: (message?: string) => void;
     unauthorized?: (message?: string) => void;
     render?: (path: string, data?: any) => void;
+    sendFile?: (path: string, contentType: string, size?: number) => void;
     error?: {
         generic: (status?: number, message?: string) => void;
         server: () => void;
