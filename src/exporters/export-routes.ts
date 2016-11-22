@@ -4,7 +4,7 @@ import { readdir, writeFile } from 'fs-extra';
 let args: string [] = process.argv.filter((a, i) => i > 1);
 exportRoutes(args[0]);
 
-function exportRoutes(folderPath: string) {
+export function exportRoutes(folderPath: string) {
     const path: string = Path.resolve(folderPath);
     getFiles(path)
     .then((files: string[]) => {

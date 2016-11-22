@@ -104,6 +104,7 @@ function exportPolicies(folderPath) {
     })
         .catch(function (err) { return console.log(err); });
 }
+exports.exportPolicies = exportPolicies;
 function writeIndex(path, declarations) {
     return new Promise(function (resolve, reject) {
         var p = Path.join(path, 'index.ts');
