@@ -194,36 +194,6 @@ var ResponseLoader = (function () {
             _this.response.writeHead(401, { 'Content-Type': 'application/json' });
             _this.response.end(JSON.stringify({ success: false, message: message }));
         };
-        this.response.render = function (html) {
-            _this.response.writeHead(200, { 'Content-Type': 'text/html' });
-            _this.response.end(html);
-            /*readFile(path, 'utf8', (err: NodeJS.ErrnoException, html: string) => {
-                if (err) {
-                    this.response.writeHead(500, {'Content-Type': 'text/html'});
-                    this.response.end(`
-                    <h1>Error</h1>
-                    <h2>${err}</h2>
-                    `);
-                }
-                let regex = /\${[a-z_]+\.?([a-z_]+?)?}/gm;
-                let keys: string[] = [];
-                let match = regex.exec(html);
-                while(match != null) {
-                    keys.push(match[1]);
-                    match = regex.exec(html);
-                }
-                keys = keys.filter(s => typeof s !== 'undefined');
-                let compiled: string = html.replace('${data}', JSON.stringify(data));
-                let i = 0;
-                while(i < keys.length) {
-                    let needle: string = '${data.'+keys[i]+'}';
-                    compiled = compiled.replace(needle, data[keys[i]]);
-                    i = i+1;
-                }
-                this.response.writeHead(200, {'Content-Type': 'text/html'});
-                this.response.end(compiled);
-            });*/
-        };
         this.response.error = {
             generic: function (status, message) {
                 if (status === void 0) { status = 404; }
@@ -604,7 +574,8 @@ var errors_handler_1 = __webpack_require__(3);
 var Path = __webpack_require__(2);
 var fs_extra_1 = __webpack_require__(0);
 var mime = __webpack_require__(17);
-function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, assetsFolderName) {
+function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, headers, renderEngine, engineOptions, assetsFolderName) {
+    var _this = this;
     if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
     var server = new server_1.Server();
     var router = new router_1.Router(routes);
@@ -628,6 +599,11 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
             r.res.writeHead(200);
             r.res.end();
         }
+        if (headers !== null && typeof headers !== 'undefined') {
+            headers.forEach(function (h) {
+                response.setHeader(h.key, h.value);
+            });
+        }
         //give the response the ability to send back responses
         response.sendFile = function (path, ct, size) {
             var rs = fs_extra_1.createReadStream(path);
@@ -637,6 +613,20 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
             r.res.writeHead(200);
             rs.pipe(r.res);
         };
+        //check if a render engine was provided; if so, use it; otherwise, use default render method;
+        if (renderEngine !== null && typeof renderEngine !== 'undefined') {
+            if (engineOptions !== null && typeof engineOptions !== 'undefined') {
+                response.render = function (path, options) {
+                    renderEngine;
+                };
+            }
+        }
+        else {
+            response.render = function (html) {
+                _this.response.writeHead(200, { 'Content-Type': 'text/html' });
+                _this.response.end(html);
+            };
+        }
         return { req: r.req, res: response };
     })
         .map(function (r) {

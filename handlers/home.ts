@@ -7,7 +7,7 @@ import { renderFile } from 'pug';
 
 export class HomeHandler {
     static main(req: Request, res: Response): void {
-        readJSON('../hrm/sandbox.json', (err, data) => {
+        readJSON('../hrm/src/assets/sandbox.json', (err, data) => {
             let display: string[] = data.map(d => d.name);
             let html = renderFile('views/main.pug', data);
             res.render(html);

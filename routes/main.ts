@@ -1,5 +1,5 @@
 import { Route } from '../src/router';
-import { ReqRes } from '../src/server';
+import { RequestResponse } from '../src/request';
 import { HomeHandler } from '../handlers/home';
 
 export const routes: Route[] = [

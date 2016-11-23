@@ -36,6 +36,7 @@ export class Server {
             observer.next({req: req, res: res});
         });
         return server;
+        
     }
 }
 
@@ -45,7 +46,6 @@ export interface FinalRequestObject {
     res: Response;
     pass: boolean;
     exec?: boolean;
-
 }
 
 export interface IncomingObject {

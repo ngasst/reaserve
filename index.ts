@@ -13,11 +13,22 @@ const mime = require('mime');
 
 
 
-export function createServer(port: number, routes: Route[], policies: Policy[], methodsAllowed?: string[], allowedOrigins?: string[]|string, allowedHeaders?: string[], assetsFolderName: string = 'assets'): Observable<FinalRequestObject> {
+export function createServer(
+    port: number, routes: Route[],
+    policies: Policy[],
+    methodsAllowed?: string[],
+    allowedOrigins?: string[]|string,
+    allowedHeaders?: string[],
+    headers?: Header[],
+    renderEngine?: (options?: any) => any,
+    engineOptions?: any,
+    assetsFolderName: string = 'assets'
+    ): Observable<FinalRequestObject> {
     const server: Server = new Server();
     const router: Router = new Router(routes);
     const evaluator: PolicyEvaluator = new PolicyEvaluator(policies);
     
+
     return server.server(port)
     .map((r: RequestResponse) => {
         let response: Response = r.res;
@@ -40,6 +51,12 @@ export function createServer(port: number, routes: Route[], policies: Policy[], 
             r.res.end();
         }
 
+        if (headers !== null && typeof headers !== 'undefined') {
+            headers.forEach((h: Header) => {
+                response.setHeader(h.key, h.value);
+            });
+        }
+
         //give the response the ability to send back responses
         response.sendFile = (path: string, ct: string, size?: number): void => {
             let rs: ReadStream = createReadStream(path);
@@ -48,6 +65,20 @@ export function createServer(port: number, routes: Route[], policies: Policy[], 
                     r.res.setHeader('Content-Length', `${size}`);
                 r.res.writeHead(200);
                 rs.pipe(r.res);
+        }
+
+        //check if a render engine was provided; if so, use it; otherwise, use default render method;
+        if (renderEngine !== null && typeof renderEngine !== 'undefined') {
+            if (engineOptions !== null && typeof engineOptions !== 'undefined') {
+                response.render = (path: string, options?: any): void => {
+                    renderEngine
+                }
+            }
+        } else {
+            response.render = (html: string): void => {
+                this.response.writeHead(200, {'Content-Type': 'text/html'});
+                this.response.end(html);
+            }
         }
         return {req: r.req, res: response};
     })
@@ -125,3 +156,7 @@ export { Response, ResponseLoader } from './src/response';
 export { RequestHandler } from './src/request-handler';
 export { Route, Router } from './src/router';
 export { Policy, PolicyEvaluator } from './src/policy';
+export interface Header {
+    key: string;
+    value: string | string[];
+}

@@ -12,6 +12,7 @@ export class RequestHandler {
         let pass: boolean = ((fr.exec || typeof fr.exec === 'undefined') && fr.pass);
         if (pass) {
             fr.route.handler(fr.req, fr.res);
+            
         }
     }
 

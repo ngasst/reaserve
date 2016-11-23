@@ -4,4 +4,6 @@ html(doctype html)
         h1 HRM Schema
         ul
             each table in locals
-                li= table
+                li
+                    span=table.name
+                    span=table.count

@@ -2,8 +2,8 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { Observable } from '@reactivex/rxjs';
 import { Policy } from './policy';
 import { FinalRequestObject, IncomingObject } from './server';
-import { Request, RequestResponse, MatchedRequest } from 'request';
-import { Response } from 'response';
+import { Request, RequestResponse, MatchedRequest } from './request';
+import { Response } from './response';
 import { ErrorHandler } from './handlers/errors-handler';
 
 export class Router {
