@@ -60,4 +60,5 @@ export interface MatchedRequest {
 export interface RequestResponse {
     req: Request;
     res: Response;
+    pass?: boolean;
 }

@@ -1,6 +1,6 @@
 import { Observable } from '@reactivex/rxjs';
-import { ReqRes } from './server';
-import { Route, MatchedRequest } from './router';
+import { Route } from './router';
+import { MatchedRequest, RequestResponse } from './request';
 
 export class PolicyEvaluator {
     policies$: Observable<Policy>;
@@ -20,11 +20,11 @@ export class PolicyEvaluator {
 
 export interface Policy {
     name: string;
-    method: (reqres: ReqRes) => boolean;
+    method: (reqres: RequestResponse) => boolean;
 }
 
 export interface EvaluatedMatchedRequest {
     route: Route;
-    reqres: ReqRes;
+    reqres: RequestResponse;
     pass: boolean;
 }

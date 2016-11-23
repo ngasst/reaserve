@@ -12,5 +12,5 @@ import { createServer } from './index';
 
 createServer(3000, routes, policies, null, '10.*')
 .subscribe((fr: FinalRequestObject) => {
-    RequestHandler.handle(fr.route.handler, fr.req, fr.res);
+    RequestHandler.handle(fr);
 });

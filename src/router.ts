@@ -24,7 +24,7 @@ export class Router {
                 return test;
             })
             .defaultIfEmpty(Object.assign({}, {reqres: reqres, route: {path: '/route-not-found', verb: 'GET', policies: [], handler: ErrorHandler.routeNotFound}}))
-            .do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
+            //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
             //.do(r => console.log(r));
     }
 

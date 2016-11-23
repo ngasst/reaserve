@@ -275,8 +275,8 @@ var Router = (function () {
                 && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase());
             return test;
         })
-            .defaultIfEmpty(Object.assign({}, { reqres: reqres, route: { path: '/route-not-found', verb: 'GET', policies: [], handler: errors_handler_1.ErrorHandler.routeNotFound } }))
-            .do(function (r) { return console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl); });
+            .defaultIfEmpty(Object.assign({}, { reqres: reqres, route: { path: '/route-not-found', verb: 'GET', policies: [], handler: errors_handler_1.ErrorHandler.routeNotFound } }));
+        //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
         //.do(r => console.log(r));
     };
     Router.prototype.parseUrls = function (route, reqres) {
@@ -332,8 +332,11 @@ var RequestHandler = (function () {
     function RequestHandler() {
         //
     }
-    RequestHandler.handle = function (handler, req, res) {
-        handler(req, res);
+    RequestHandler.handle = function (fr) {
+        var pass = ((fr.exec || typeof fr.exec === 'undefined') && fr.pass);
+        if (pass) {
+            fr.route.handler(fr.req, fr.res);
+        }
     };
     return RequestHandler;
 }());
@@ -608,24 +611,23 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
     var evaluator = new policy_1.PolicyEvaluator(policies);
     return server.server(port)
         .map(function (r) {
-        if (r.req.method === 'OPTIONS') {
-            var response = r.res;
-            if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
-                response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
-            }
-            else {
-                if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
-                    response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
-                }
-            }
-            if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
-                response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
-            if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
-                response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
-            response.end();
+        var response = r.res;
+        if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
+            response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
         }
-    })
-        .map(function (r) {
+        else {
+            if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
+                response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+            }
+        }
+        if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
+            response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
+        if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
+            response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
+        if (r.req.method === 'OPTIONS') {
+            r.res.writeHead(200);
+            r.res.end();
+        }
         //give the response the ability to send back responses
         response.sendFile = function (path, ct, size) {
             var rs = fs_extra_1.createReadStream(path);
@@ -637,29 +639,26 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
         };
         return { req: r.req, res: response };
     })
-        .do(function (r) {
+        .map(function (r) {
         var regex = "^/" + assetsFolderName + "/?[^s]+";
         var match = r.req.url.match(regex);
         var testAssets = match !== null;
         if (testAssets) {
-            var type_1 = mime.lookup(r.req.url);
-            console.log(type_1);
-            var path_1 = Path.join(process.cwd(), r.req.url);
-            fs_extra_1.stat(path_1, function (err, stats) {
-                if (err) {
-                    console.log(err);
-                    r.res.writeHead(500, { 'Content-Type': 'application/text' });
-                    r.res.end(err);
-                }
-                r.res.sendFile(path_1, type_1, stats.size);
-            });
+            var type = mime.lookup(r.req.url);
+            var path = Path.join(process.cwd(), r.req.url);
+            var stats = fs_extra_1.statSync(path);
+            r.res.sendFile(path, type, stats.size);
+            return { req: r.req, res: r.res, pass: false };
         }
-        console.log('isAssetReq: ', testAssets, match);
+        else {
+            return r;
+        }
     })
         .map(function (r) {
         var rr = {
             req: (r.req.method.toUpperCase() !== ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(r.req) : r.req,
-            res: r.res
+            res: r.res,
+            pass: r.pass
         };
         return rr;
     })
@@ -669,7 +668,7 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
         var resload = new response_1.ResponseLoader(mr.reqres.res);
         var response = resload.load();
         var request = (mr.reqres.req.method.toUpperCase() === ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(mr.reqres.req) : mr.reqres.req;
-        var obj = { route: mr.route, reqres: { req: request, res: response } };
+        var obj = { route: mr.route, reqres: { req: request, res: response, pass: mr.reqres.pass } };
         return obj;
     })
         .map(function (mr) { return evaluator.evaluate(mr); })
@@ -677,15 +676,22 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
         .map(function (er) {
         var emr = {
             pass: er.pass,
+            exec: er.reqres.pass,
             req: er.reqres.req,
             res: er.reqres.res,
             route: er.route
         };
         return emr;
     })
-        .do(function (fr) {
-        if (!fr.pass)
+        .map(function (fr) {
+        console.log(fr.exec, fr.pass);
+        if (!fr.pass && (fr.exec || typeof fr.exec === 'undefined')) {
             errors_handler_1.ErrorHandler.policyError(fr.req, fr.res);
+            return fr;
+        }
+        else {
+            return fr;
+        }
     });
 }
 exports.createServer = createServer;
@@ -784,7 +790,7 @@ exports.HomeHandler = HomeHandler;
 exports.policies = [
     {
         name: 'main',
-        method: function () { return false; }
+        method: function () { return true; }
     }
 ];
 
@@ -842,7 +848,7 @@ var request_handler_1 = __webpack_require__(8);
 var index_1 = __webpack_require__(18);
 index_1.createServer(3000, routes_1.routes, policies_1.policies, null, '10.*')
     .subscribe(function (fr) {
-    request_handler_1.RequestHandler.handle(fr.route.handler, fr.req, fr.res);
+    request_handler_1.RequestHandler.handle(fr);
 });
 
 

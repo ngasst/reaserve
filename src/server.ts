@@ -44,6 +44,7 @@ export interface FinalRequestObject {
     req: Request;
     res: Response;
     pass: boolean;
+    exec?: boolean;
 
 }
 
