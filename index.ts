@@ -20,8 +20,7 @@ export function createServer(
     allowedOrigins?: string[]|string,
     allowedHeaders?: string[],
     headers?: Header[],
-    renderEngine?: (options?: any) => any,
-    engineOptions?: any,
+    renderEngine?: (path: string, options?: any) => any,
     assetsFolderName: string = 'assets'
     ): Observable<FinalRequestObject> {
     const server: Server = new Server();
@@ -69,15 +68,13 @@ export function createServer(
 
         //check if a render engine was provided; if so, use it; otherwise, use default render method;
         if (renderEngine !== null && typeof renderEngine !== 'undefined') {
-            if (engineOptions !== null && typeof engineOptions !== 'undefined') {
-                response.render = (path: string, options?: any): void => {
-                    renderEngine
-                }
+            response.render = (path: string, options: any): void => {
+                renderEngine(path, options);
             }
         } else {
             response.render = (html: string): void => {
-                this.response.writeHead(200, {'Content-Type': 'text/html'});
-                this.response.end(html);
+                response.writeHead(200, {'Content-Type': 'text/html'});
+                response.end(html);
             }
         }
         return {req: r.req, res: response};
@@ -148,7 +145,7 @@ export function createServer(
     });
 }
 
-export { Server, FinalRequestObject, IncomingObject } from './src/Server';
+export { Server, FinalRequestObject, IncomingObject } from './src/server';
 export { exportPolicies, exportRoutes } from './src/exporters';
 export { ErrorHandler } from './src/handlers';
 export { Request, RequestExtractor, RequestResponse, MatchedRequest } from './src/request';

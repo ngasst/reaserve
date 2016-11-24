@@ -75,13 +75,13 @@ module.exports = require("fs-extra");
 /* 1 */
 /***/ function(module, exports) {
 
-module.exports = require("@reactivex/rxjs");
+module.exports = require("path");
 
 /***/ },
 /* 2 */
 /***/ function(module, exports) {
 
-module.exports = require("path");
+module.exports = require("@reactivex/rxjs");
 
 /***/ },
 /* 3 */
@@ -109,7 +109,7 @@ exports.ErrorHandler = ErrorHandler;
 
 "use strict";
 "use strict";
-var rxjs_1 = __webpack_require__(1);
+var rxjs_1 = __webpack_require__(2);
 var PolicyEvaluator = (function () {
     function PolicyEvaluator(policies) {
         this.policies$ = rxjs_1.Observable.from(policies);
@@ -133,7 +133,7 @@ exports.PolicyEvaluator = PolicyEvaluator;
 
 "use strict";
 "use strict";
-var rxjs_1 = __webpack_require__(1);
+var rxjs_1 = __webpack_require__(2);
 var url_1 = __webpack_require__(19);
 var RequestExtractor = (function () {
     function RequestExtractor(req) {
@@ -229,7 +229,7 @@ exports.ResponseLoader = ResponseLoader;
 
 "use strict";
 "use strict";
-var rxjs_1 = __webpack_require__(1);
+var rxjs_1 = __webpack_require__(2);
 var errors_handler_1 = __webpack_require__(3);
 var Router = (function () {
     function Router(routes) {
@@ -331,7 +331,7 @@ module.exports = require("https");
 
 "use strict";
 "use strict";
-var Path = __webpack_require__(2);
+var Path = __webpack_require__(1);
 var fs_extra_1 = __webpack_require__(0);
 function exportPolicies(folderPath) {
     var path = Path.resolve(folderPath);
@@ -390,7 +390,7 @@ function getFiles(path) {
 
 "use strict";
 "use strict";
-var Path = __webpack_require__(2);
+var Path = __webpack_require__(1);
 var fs_extra_1 = __webpack_require__(0);
 function exportRoutes(folderPath) {
     var path = Path.resolve(folderPath);
@@ -444,50 +444,7 @@ function getFiles(path) {
 
 
 /***/ },
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-"use strict";
-var rxjs_1 = __webpack_require__(1);
-var http_1 = __webpack_require__(9);
-var https_1 = __webpack_require__(10);
-var Server = (function () {
-    function Server(protocol) {
-        if (protocol === void 0) { protocol = 'http'; }
-        this.protocol = protocol;
-        //
-    }
-    Server.prototype.server = function (port, protocol) {
-        var _this = this;
-        if (protocol === void 0) { protocol = this.protocol; }
-        return rxjs_1.Observable.create(function (observer) {
-            var server = protocol === 'http' ? _this.getHttpServer(observer) : _this.getHttpsServer(observer);
-            server.listen(port);
-            return function () {
-                observer.complete();
-                server.close();
-            };
-        });
-    };
-    Server.prototype.getHttpServer = function (observer) {
-        var server = http_1.createServer(function (req, res) {
-            observer.next({ req: req, res: res });
-        });
-        return server;
-    };
-    Server.prototype.getHttpsServer = function (observer) {
-        var server = https_1.createServer(function (req, res) {
-            observer.next({ req: req, res: res });
-        });
-        return server;
-    };
-    return Server;
-}());
-exports.Server = Server;
-
-
-/***/ },
+/* 13 */,
 /* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -515,7 +472,7 @@ exports.ErrorHandler = errors_handler_1.ErrorHandler;
 
 "use strict";
 "use strict";
-var rxjs_1 = __webpack_require__(1);
+var rxjs_1 = __webpack_require__(2);
 var http_1 = __webpack_require__(9);
 var https_1 = __webpack_require__(10);
 var Server = (function () {
@@ -571,11 +528,10 @@ var policy_1 = __webpack_require__(4);
 var response_1 = __webpack_require__(6);
 var request_1 = __webpack_require__(5);
 var errors_handler_1 = __webpack_require__(3);
-var Path = __webpack_require__(2);
+var Path = __webpack_require__(1);
 var fs_extra_1 = __webpack_require__(0);
 var mime = __webpack_require__(17);
-function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, headers, renderEngine, engineOptions, assetsFolderName) {
-    var _this = this;
+function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, headers, renderEngine, assetsFolderName) {
     if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
     var server = new server_1.Server();
     var router = new router_1.Router(routes);
@@ -615,16 +571,14 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
         };
         //check if a render engine was provided; if so, use it; otherwise, use default render method;
         if (renderEngine !== null && typeof renderEngine !== 'undefined') {
-            if (engineOptions !== null && typeof engineOptions !== 'undefined') {
-                response.render = function (path, options) {
-                    renderEngine;
-                };
-            }
+            response.render = function (path, options) {
+                renderEngine(path, options);
+            };
         }
         else {
             response.render = function (html) {
-                _this.response.writeHead(200, { 'Content-Type': 'text/html' });
-                _this.response.end(html);
+                response.writeHead(200, { 'Content-Type': 'text/html' });
+                response.end(html);
             };
         }
         return { req: r.req, res: response };
@@ -685,8 +639,8 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
     });
 }
 exports.createServer = createServer;
-var Server_1 = __webpack_require__(13);
-exports.Server = Server_1.Server;
+var server_2 = __webpack_require__(16);
+exports.Server = server_2.Server;
 var exporters_1 = __webpack_require__(14);
 exports.exportPolicies = exporters_1.exportPolicies;
 exports.exportRoutes = exporters_1.exportRoutes;

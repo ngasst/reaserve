@@ -30,6 +30,7 @@ export class HomeHandler {
         console.log(params);
         res.json(params);
     }
+    
 
     static getByIdAndUsername(req: Request, res: Response): void {
         let params: any = req.params;

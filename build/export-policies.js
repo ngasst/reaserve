@@ -74,12 +74,19 @@ module.exports = require("fs-extra");
 
 /***/ },
 
+/***/ 1:
+/***/ function(module, exports) {
+
+module.exports = require("path");
+
+/***/ },
+
 /***/ 11:
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
-var Path = __webpack_require__(2);
+var Path = __webpack_require__(1);
 var fs_extra_1 = __webpack_require__(0);
 function exportPolicies(folderPath) {
     var path = Path.resolve(folderPath);
@@ -131,13 +138,6 @@ function getFiles(path) {
     });
 }
 
-
-/***/ },
-
-/***/ 2:
-/***/ function(module, exports) {
-
-module.exports = require("path");
 
 /***/ }
 
