@@ -11,6 +11,7 @@ import { ErrorHandler } from './src/handlers/errors-handler';
 import { createServer } from './index';
 
 createServer(3000, routes, policies, null, '10.*')
+.do(fr => console.log(fr.route))
 .subscribe((fr: FinalRequestObject) => {
     RequestHandler.handle(fr);
 });

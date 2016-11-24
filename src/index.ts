@@ -20,7 +20,7 @@ export function createServer(
     allowedOrigins?: string[]|string,
     allowedHeaders?: string[],
     headers?: Header[],
-    renderEngine?: (path: string, options?: any) => any,
+    renderEngine?: (path: string, options?: any, done?: Function) => any,
     assetsFolderName: string = 'assets'
     ): Observable<FinalRequestObject> {
     const server: Server = new Server();
@@ -69,7 +69,15 @@ export function createServer(
         //check if a render engine was provided; if so, use it; otherwise, use default render method;
         if (renderEngine !== null && typeof renderEngine !== 'undefined') {
             response.render = (path: string, options: any): void => {
-                renderEngine(path, options);
+                renderEngine(path, options, (err, data) => {
+                    if (err){
+                        response.writeHead(500, {'Content-Type': 'text/html'});
+                        response.end(data);
+                    } else {
+                        response.writeHead(200, {'Content-Type': 'text/html'});
+                        response.end(data);
+                    }
+                });
             }
         } else {
             response.render = (html: string): void => {
@@ -103,6 +111,7 @@ export function createServer(
         }
         return rr;
     })
+    .do(r => console.log(r.req.url))
     //match the route from the request to the app routes, loaded above [import {routes} from './routes']
     .map((r: RequestResponse) => router.match(r))
     //unwrap observables to a first dergree
@@ -146,8 +155,9 @@ export function createServer(
 }
 
 export { Server, FinalRequestObject, IncomingObject } from './server';
-export { exportPolicies, exportRoutes } from './exporters';
-export { ErrorHandler } from './handlers';
+//export { exportPolicies } from './exporters/export-policies';
+//export { exportRoutes } from './exporters/export-routes';
+export { ErrorHandler } from './handlers/errors-handler';
 export { Request, RequestExtractor, RequestResponse, MatchedRequest } from './request';
 export { Response, ResponseLoader } from './response';
 export { RequestHandler } from './request-handler';

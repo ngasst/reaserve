@@ -1,1 +1,685 @@
-!function(e){function r(t){if(n[t])return n[t].exports;var o=n[t]={i:t,l:!1,exports:{}};return e[t].call(o.exports,o,o.exports,r),o.l=!0,o.exports}var n={};return r.m=e,r.c=n,r.i=function(e){return e},r.d=function(e,r,n){Object.defineProperty(e,r,{configurable:!1,enumerable:!0,get:n})},r.n=function(e){var n=e&&e.__esModule?function(){return e["default"]}:function(){return e};return r.d(n,"a",n),n},r.o=function(e,r){return Object.prototype.hasOwnProperty.call(e,r)},r.p="",r(r.s=26)}([function(e,r){e.exports=require("fs-extra")},function(e,r){e.exports=require("path")},function(e,r){e.exports=require("@reactivex/rxjs")},function(e,r){"use strict";var n=function(){function e(){}return e.routeNotFound=function(e,r){r.error.notFound()},e.policyError=function(e,r){r.error.policyFailed()},e}();r.ErrorHandler=n},function(e,r,n){"use strict";var t=n(2),o=function(){function e(e){this.policies$=t.Observable.from(e)}return e.prototype.evaluate=function(e){return this.policies$.filter(function(r){return e.route.policies.indexOf(r.name)!==-1||0===e.route.policies.length}).map(function(r){return r.method(e.reqres)})["do"](function(e){return console.log(e)}).reduce(function(e,r){var n=r?0:1;return e+n},0).map(function(r){return 0===r?Object.assign({route:e.route,reqres:e.reqres,pass:!0}):Object.assign({route:e.route,reqres:e.reqres,pass:!1})})},e}();r.PolicyEvaluator=o},function(e,r,n){"use strict";var t=n(2),o=n(19),s=function(){function e(e){this.request=e,this.verb=this.request.method}return e.extract=function(e){if("GET"===e.method.toUpperCase()){var r=e;return r.params=this.getParams(e),r}if("POST"===e.method.toUpperCase()){var r=e;return r.body=this.getJSON(e),r}},e.getJSON=function(e){return t.Observable.fromEvent(e,"data").buffer(t.Observable.fromEvent(e,"end")).map(function(e){return JSON.parse(e.toString())})},e.getParams=function(e){var r=e.url,n=o.parse(r,!0).query;return n},e}();r.RequestExtractor=s},function(e,r){"use strict";var n=function(){function e(e){var r=this;this.response=e,this.response.json=function(e){r.response.writeHead(200,{"Content-Type":"application/json"}),r.response.end(JSON.stringify(e))},this.response.ok=function(e){void 0===e&&(e="Success"),r.response.writeHead(200,{"Content-Type":"application/json"}),r.response.end(JSON.stringify({success:!0,message:e}))},this.response.unauthorized=function(e){void 0===e&&(e="You are not authorized to access this resource."),r.response.writeHead(401,{"Content-Type":"application/json"}),r.response.end(JSON.stringify({success:!1,message:e}))},this.response.error={generic:function(e,n){void 0===e&&(e=404),void 0===n&&(n="Resource not found"),r.response.writeHead(e,{"Content-Type":"application/json"}),r.response.end(JSON.stringify({success:!1,message:n}))},server:function(){r.response.writeHead(500,{"Content-Type":"application/json"}),r.response.end(JSON.stringify({success:!1,message:"Something went wrong on the server. Please try again later."}))},notFound:function(){r.response.writeHead(404,{"Content-Type":"application/json"}),r.response.end(JSON.stringify({success:!1,message:"Resource Not Found"}))},policyFailed:function(){r.response.writeHead(401,{"Content-Type":"application/json"}),r.response.end(JSON.stringify({success:!1,message:"One or more policies prevented access to this route."}))}}}return e.prototype.load=function(){return this.response},e}();r.ResponseLoader=n},function(e,r,n){"use strict";var t=n(2),o=n(3),s=function(){function e(e){this.routes$=t.Observable.from(e)}return e.prototype.match=function(e){var r=this;return this.routes$.map(function(n){return r.parseUrls(n,e)}).filter(function(e){var r="undefined"!=typeof e.reqres.req&&e.route.path===e.reqres.req.unparsedUrl&&e.route.verb.toUpperCase()===e.reqres.req.method.toUpperCase();return r}).defaultIfEmpty(Object.assign({},{reqres:e,route:{path:"/route-not-found",verb:"GET",policies:[],handler:o.ErrorHandler.routeNotFound}}))},e.prototype.parseUrls=function(e,r){var n=e.path,t=r.req.url,o=n.match(/(:[^\/|\s]+)/g),s=n.match(/(^\/[a-zA-Z-_\/]*)/g)[0];o=null===o?[]:o;var i,u=t.replace(s,"").split("/"),c=u.filter(function(e){return e.length>1}),a=s.length>1?s.concat("/").concat(c.join("/")):s.concat(c.join("/"));if(o.length>0&&o.length===c.length){var p=o.map(function(e,r){return e+"="+c[r]}).map(function(e){return e.slice(1,e.length)}),f=s.concat("?").concat(p.join("&")),l={handler:e.handler,policies:e.policies,verb:e.verb,path:a},d=Object.assign(r.req,{url:f,unparsedUrl:t});i={route:l,reqres:Object.assign(r,{req:d})}}else i={route:e,reqres:{req:Object.assign({},r.req,{unparsedUrl:t}),res:r.res}};return i},e}();r.Router=s},function(e,r,n){"use strict";var t=n(2),o=n(16),s=n(17),i=function(){function e(e){void 0===e&&(e="http"),this.protocol=e}return e.prototype.server=function(e,r){var n=this;return void 0===r&&(r=this.protocol),t.Observable.create(function(t){var o="http"===r?n.getHttpServer(t):n.getHttpsServer(t);return o.listen(e),function(){t.complete(),o.close()}})},e.prototype.getHttpServer=function(e){var r=o.createServer(function(r,n){e.next({req:r,res:n})});return r},e.prototype.getHttpsServer=function(e){var r=s.createServer(function(r,n){e.next({req:r,res:n})});return r},e}();r.Server=i},function(e,r,n){"use strict";function t(e){var r=u.resolve(e);i(r).then(function(e){return s(e)}).then(function(e){return o(r,e)}).then(function(){console.log("Done!")})["catch"](function(e){return console.log(e)})}function o(e,r){return new Promise(function(n,t){var o=u.join(e,"index.ts");c.writeFile(o,r,function(e){e&&t(e),n()})})}function s(e){return new Promise(function(r,n){var t=e.filter(function(e){return e.indexOf("index")===-1}).map(function(e){return e.slice(0,e.length-3)}).map(function(e){return"import { policies as "+e+" } from './"+e+"';\r\n"}).reduce(function(e,r){return e.concat(r)},"import { Policy } from '../src/policy';\r\n"),o=e.filter(function(e){return e.indexOf("index")===-1}).map(function(e){return e.slice(0,e.length-3)}),s="export const policies: Policy[] = [].concat(..."+o.toString()+")",i=t.concat("\r\n").concat(s);r(i)})}function i(e){return new Promise(function(r,n){c.readdir(e,function(e,t){e&&n(e),r(t)})})}var u=n(1),c=n(0);r.exportPolicies=t},function(e,r,n){"use strict";function t(e){var r=u.resolve(e);i(r).then(function(e){return s(e)}).then(function(e){return o(r,e)}).then(function(){console.log("Done!")})["catch"](function(e){return console.log(e)})}function o(e,r){return new Promise(function(n,t){var o=u.join(e,"index.ts");c.writeFile(o,r,function(e){e&&t(e),n()})})}function s(e){return new Promise(function(r,n){var t=e.filter(function(e){return e.indexOf("index")===-1}).map(function(e){return e.slice(0,e.length-3)}).map(function(e){return"import { routes as "+e+" } from './"+e+"';\r\n"}).reduce(function(e,r){return e.concat(r)},"import { Route } from '../src/router';\r\n"),o=e.filter(function(e){return e.indexOf("index")===-1}).map(function(e){return e.slice(0,e.length-3)}),s="export const routes: Route[] = [].concat(..."+o.toString()+")",i=t.concat("\r\n").concat(s);r(i)})}function i(e){return new Promise(function(r,n){c.readdir(e,function(e,t){e&&n(e),r(t)})})}var u=n(1),c=n(0);r.exportRoutes=t},function(e,r){"use strict";var n=function(){function e(){}return e.handle=function(e){var r=(e.exec||"undefined"==typeof e.exec)&&e.pass;r&&e.route.handler(e.req,e.res)},e}();r.RequestHandler=n},function(e,r,n){"use strict";function t(e,r,n,t,d,v,m,h,q){void 0===q&&(q="assets");var g=new o.Server,y=new s.Router(r),x=new i.PolicyEvaluator(n);return g.server(e).map(function(e){var r=e.res;return null!==d&&"undefined"!=typeof d&&"array"==typeof d?r.setHeader("Access-Control-Allow-Origin",d.join(",")):null!==d&&"undefined"!=typeof d&&"string"==typeof d&&r.setHeader("Access-Control-Allow-Origin",d),null!==t&&"undefined"!=typeof t&&r.setHeader("Access-Control-Allow-Methods",t.join(",")),null!==v&&"undefined"!=typeof v&&r.setHeader("Access-Control-Allow-Headers",v.join(",")),"OPTIONS"===e.req.method&&(e.res.writeHead(200),e.res.end()),null!==m&&"undefined"!=typeof m&&m.forEach(function(e){r.setHeader(e.key,e.value)}),r.sendFile=function(r,n,t){var o=f.createReadStream(r);e.res.setHeader("Content-Type",n),null!==t&&"undefined"!=typeof t&&e.res.setHeader("Content-Length",""+t),e.res.writeHead(200),o.pipe(e.res)},null!==h&&"undefined"!=typeof h?r.render=function(e,r){h(e,r)}:r.render=function(e){r.writeHead(200,{"Content-Type":"text/html"}),r.end(e)},{req:e.req,res:r}}).map(function(e){var r="^/"+q+"/?[^s]+",n=e.req.url.match(r),t=null!==n;if(t){var o=l.lookup(e.req.url),s=p.join(process.cwd(),e.req.url),i=f.statSync(s);return e.res.sendFile(s,o,i.size),{req:e.req,res:e.res,pass:!1}}return e}).map(function(e){var r={req:"GET"!==e.req.method.toUpperCase()?c.RequestExtractor.extract(e.req):e.req,res:e.res,pass:e.pass};return r}).map(function(e){return y.match(e)})["switch"]().map(function(e){var r=new u.ResponseLoader(e.reqres.res),n=r.load(),t="GET"===e.reqres.req.method.toUpperCase()?c.RequestExtractor.extract(e.reqres.req):e.reqres.req,o={route:e.route,reqres:{req:t,res:n,pass:e.reqres.pass}};return o}).map(function(e){return x.evaluate(e)})["switch"]().map(function(e){var r={pass:e.pass,exec:e.reqres.pass,req:e.reqres.req,res:e.reqres.res,route:e.route};return r}).map(function(e){return console.log(e.exec,e.pass),e.pass||!e.exec&&"undefined"!=typeof e.exec?e:(a.ErrorHandler.policyError(e.req,e.res),e)})}var o=n(8),s=n(7),i=n(4),u=n(6),c=n(5),a=n(3),p=n(1),f=n(0),l=n(18);r.createServer=t;var d=n(8);r.Server=d.Server;var v=n(14);r.exportPolicies=v.exportPolicies,r.exportRoutes=v.exportRoutes;var m=n(15);r.ErrorHandler=m.ErrorHandler;var h=n(5);r.RequestExtractor=h.RequestExtractor;var q=n(6);r.ResponseLoader=q.ResponseLoader;var g=n(11);r.RequestHandler=g.RequestHandler;var y=n(7);r.Router=y.Router;var x=n(4);r.PolicyEvaluator=x.PolicyEvaluator},function(e,r,n){"use strict";function t(e){for(var n in e)r.hasOwnProperty(n)||(r[n]=e[n])}t(n(12))},function(e,r,n){"use strict";var t=n(9);r.exportPolicies=t.exportPolicies;var o=n(10);r.exportRoutes=o.exportRoutes},function(e,r,n){"use strict";var t=n(3);r.ErrorHandler=t.ErrorHandler},function(e,r){e.exports=require("http")},function(e,r){e.exports=require("https")},function(e,r){e.exports=require("mime")},function(e,r){e.exports=require("url")},function(e,r,n){"use strict";var t=n(23);r.policies=[].concat.apply([],t.policies)},function(e,r,n){"use strict";var t=n(24);r.routes=[].concat.apply([],t.routes)},function(e,r,n){"use strict";var t=n(0),o=n(25),s=function(){function e(){}return e.main=function(e,r){t.readJSON("../hrm/src/assets/sandbox.json",function(e,n){var t=(n.map(function(e){return e.name}),o.renderFile("views/main.pug",n));r.render(t)})},e.post=function(e,r){var n=e.body.subscribe(function(e){r.json(e)},function(){n.unsubscribe()},function(e){return console.log(e)})},e.getById=function(e,r){var n=e.params;console.log(n),r.json(n)},e.getByIdAndUsername=function(e,r){var n=e.params;console.log(n),r.json(n)},e}();r.HomeHandler=s},function(e,r){"use strict";r.policies=[{name:"main",method:function(){return!0}}]},function(e,r,n){"use strict";var t=n(22);r.routes=[{path:"/",verb:"GET",handler:t.HomeHandler.main,policies:["main"]},{path:"/",verb:"POST",handler:t.HomeHandler.post,policies:["main"]},{path:"/:id",verb:"GET",handler:t.HomeHandler.getById,policies:[]},{path:"/:id/:username",verb:"GET",handler:t.HomeHandler.getByIdAndUsername,policies:[]}]},function(e,r){e.exports=require("pug")},function(e,r,n){"use strict";var t=n(21),o=n(20),s=n(11),i=n(13);i.createServer(3e3,t.routes,o.policies,null,"10.*").subscribe(function(e){s.RequestHandler.handle(e)})}]);
+require("source-map-support").install();
+module.exports =
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId])
+/******/ 			return installedModules[moduleId].exports;
+/******/
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// identity function for calling harmory imports with the correct context
+/******/ 	__webpack_require__.i = function(value) { return value; };
+/******/
+/******/ 	// define getter function for harmory exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		Object.defineProperty(exports, name, {
+/******/ 			configurable: false,
+/******/ 			enumerable: true,
+/******/ 			get: getter
+/******/ 		});
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 24);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ function(module, exports) {
+
+module.exports = require("fs-extra");
+
+/***/ },
+/* 1 */
+/***/ function(module, exports) {
+
+module.exports = require("@reactivex/rxjs");
+
+/***/ },
+/* 2 */
+/***/ function(module, exports) {
+
+module.exports = require("path");
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+"use strict";
+"use strict";
+var ErrorHandler = (function () {
+    function ErrorHandler() {
+    }
+    ErrorHandler.routeNotFound = function (req, res) {
+        res.error.notFound();
+    };
+    ErrorHandler.policyError = function (req, res) {
+        res.error.policyFailed();
+    };
+    return ErrorHandler;
+}());
+exports.ErrorHandler = ErrorHandler;
+
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var rxjs_1 = __webpack_require__(1);
+var PolicyEvaluator = (function () {
+    function PolicyEvaluator(policies) {
+        this.policies$ = rxjs_1.Observable.from(policies);
+    }
+    PolicyEvaluator.prototype.evaluate = function (mr) {
+        return this.policies$
+            .filter(function (pol) { return mr.route.policies.indexOf(pol.name) !== -1 || mr.route.policies.length === 0; })
+            .map(function (p) { return p.method(mr.reqres); })
+            .do(function (val) { return console.log(val); })
+            .reduce(function (acc, val) { var num = val ? 0 : 1; return acc + num; }, 0)
+            .map(function (guard) { return guard === 0 ? Object.assign({ route: mr.route, reqres: mr.reqres, pass: true }) : Object.assign({ route: mr.route, reqres: mr.reqres, pass: false }); });
+    };
+    return PolicyEvaluator;
+}());
+exports.PolicyEvaluator = PolicyEvaluator;
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var rxjs_1 = __webpack_require__(1);
+var url_1 = __webpack_require__(15);
+var RequestExtractor = (function () {
+    function RequestExtractor(req) {
+        this.request = req;
+        this.verb = this.request.method;
+    }
+    RequestExtractor.extract = function (req) {
+        //params
+        if (req.method.toUpperCase() === ('GET' || 'DELETE')) {
+            var request = req;
+            request.params = this.getParams(req);
+            return request;
+        }
+        //body
+        if (req.method.toUpperCase() === ('POST' || 'UPDATE' || 'DELETE' || 'PATCH')) {
+            var request = req;
+            request.body = this.getJSON(req);
+            return request;
+        }
+    };
+    RequestExtractor.getJSON = function (req) {
+        return rxjs_1.Observable
+            .fromEvent(req, 'data')
+            .buffer(rxjs_1.Observable.fromEvent(req, 'end'))
+            .map(function (d) { return JSON.parse(d.toString()); });
+    };
+    RequestExtractor.getParams = function (req) {
+        var url = req.url;
+        var parsed = url_1.parse(url, true).query;
+        return parsed;
+    };
+    return RequestExtractor;
+}());
+exports.RequestExtractor = RequestExtractor;
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports) {
+
+"use strict";
+"use strict";
+var ResponseLoader = (function () {
+    function ResponseLoader(res) {
+        var _this = this;
+        this.response = res;
+        this.response.json = function (json) {
+            _this.response.writeHead(200, { 'Content-Type': 'application/json' });
+            _this.response.end(JSON.stringify(json));
+        };
+        this.response.ok = function (message) {
+            if (message === void 0) { message = 'Success'; }
+            _this.response.writeHead(200, { 'Content-Type': 'application/json' });
+            _this.response.end(JSON.stringify({ success: true, message: message }));
+        };
+        this.response.unauthorized = function (message) {
+            if (message === void 0) { message = 'You are not authorized to access this resource.'; }
+            _this.response.writeHead(401, { 'Content-Type': 'application/json' });
+            _this.response.end(JSON.stringify({ success: false, message: message }));
+        };
+        this.response.error = {
+            generic: function (status, message) {
+                if (status === void 0) { status = 404; }
+                if (message === void 0) { message = 'Resource not found'; }
+                _this.response.writeHead(status, { 'Content-Type': 'application/json' });
+                _this.response.end(JSON.stringify({ success: false, message: message }));
+            },
+            server: function () {
+                _this.response.writeHead(500, { 'Content-Type': 'application/json' });
+                _this.response.end(JSON.stringify({ success: false, message: 'Something went wrong on the server. Please try again later.' }));
+            },
+            notFound: function () {
+                _this.response.writeHead(404, { 'Content-Type': 'application/json' });
+                _this.response.end(JSON.stringify({ success: false, message: 'Resource Not Found' }));
+            },
+            policyFailed: function () {
+                _this.response.writeHead(401, { 'Content-Type': 'application/json' });
+                _this.response.end(JSON.stringify({ success: false, message: 'One or more policies prevented access to this route.' }));
+            }
+        };
+    }
+    ResponseLoader.prototype.load = function () {
+        return this.response;
+    };
+    return ResponseLoader;
+}());
+exports.ResponseLoader = ResponseLoader;
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var rxjs_1 = __webpack_require__(1);
+var errors_handler_1 = __webpack_require__(3);
+var Router = (function () {
+    function Router(routes) {
+        this.routes$ = rxjs_1.Observable.from(routes);
+    }
+    Router.prototype.match = function (reqres) {
+        var _this = this;
+        return this.routes$
+            .map(function (r) { return _this.parseUrls(r, reqres); })
+            .filter(function (mr) {
+            var test = (typeof mr.reqres.req !== 'undefined'
+                && mr.route.path === mr.reqres.req.unparsedUrl
+                && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase());
+            return test;
+        })
+            .defaultIfEmpty(Object.assign({}, { reqres: reqres, route: { path: '/route-not-found', verb: 'GET', policies: [], handler: errors_handler_1.ErrorHandler.routeNotFound } }));
+        //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
+        //.do(r => console.log(r));
+    };
+    Router.prototype.parseUrls = function (route, reqres) {
+        var path = route.path;
+        var url = reqres.req.url;
+        var labels = path.match(/(:[^\/|\s]+)/g);
+        var base = path.match(/(^\/[a-zA-Z-_\/]*)/g)[0];
+        labels = labels === null ? [] : labels;
+        var valuesArray = url.replace(base, '').split('/');
+        var values = valuesArray.filter(function (s) { return s.length > 1; });
+        var newPath = base.length > 1 ? base.concat('/').concat(values.join('/')) : base.concat(values.join('/'));
+        var mr;
+        if ((labels.length > 0 && labels.length === values.length)) {
+            //console.log(labels);
+            var pairs = labels.map(function (l, i) { return l + "=" + values[i]; }).map(function (s) { return s.slice(1, s.length); });
+            var newUrl = base.concat('?').concat(pairs.join('&'));
+            var newRoute = {
+                handler: route.handler,
+                policies: route.policies,
+                verb: route.verb,
+                path: newPath
+            };
+            var newReq = Object.assign(reqres.req, { url: newUrl, unparsedUrl: url });
+            mr = {
+                route: newRoute,
+                reqres: Object.assign(reqres, { req: newReq })
+            };
+        }
+        else {
+            mr = {
+                route: route,
+                reqres: {
+                    req: Object.assign({}, reqres.req, { unparsedUrl: url }),
+                    res: reqres.res
+                }
+            };
+        }
+        //console.log(mr.route.path, labels, reqres.req.url, reqres.req.parsedUrl);
+        return mr;
+    };
+    return Router;
+}());
+exports.Router = Router;
+
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var rxjs_1 = __webpack_require__(1);
+var http_1 = __webpack_require__(12);
+var https_1 = __webpack_require__(13);
+var Server = (function () {
+    function Server(protocol) {
+        if (protocol === void 0) { protocol = 'http'; }
+        this.protocol = protocol;
+        //
+    }
+    Server.prototype.server = function (port, protocol) {
+        var _this = this;
+        if (protocol === void 0) { protocol = this.protocol; }
+        return rxjs_1.Observable.create(function (observer) {
+            var server = protocol === 'http' ? _this.getHttpServer(observer) : _this.getHttpsServer(observer);
+            server.listen(port);
+            return function () {
+                observer.complete();
+                server.close();
+            };
+        });
+    };
+    Server.prototype.getHttpServer = function (observer) {
+        var server = http_1.createServer(function (req, res) {
+            observer.next({ req: req, res: res });
+        });
+        return server;
+    };
+    Server.prototype.getHttpsServer = function (observer) {
+        var server = https_1.createServer(function (req, res) {
+            observer.next({ req: req, res: res });
+        });
+        return server;
+    };
+    return Server;
+}());
+exports.Server = Server;
+
+
+/***/ },
+/* 9 */
+/***/ function(module, exports) {
+
+"use strict";
+"use strict";
+var RequestHandler = (function () {
+    function RequestHandler() {
+        //
+    }
+    RequestHandler.handle = function (fr) {
+        var pass = ((fr.exec || typeof fr.exec === 'undefined') && fr.pass);
+        if (pass) {
+            fr.route.handler(fr.req, fr.res);
+        }
+    };
+    return RequestHandler;
+}());
+exports.RequestHandler = RequestHandler;
+
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var server_1 = __webpack_require__(8);
+var router_1 = __webpack_require__(7);
+var policy_1 = __webpack_require__(4);
+var response_1 = __webpack_require__(6);
+var request_1 = __webpack_require__(5);
+var errors_handler_1 = __webpack_require__(3);
+var Path = __webpack_require__(2);
+var fs_extra_1 = __webpack_require__(0);
+var mime = __webpack_require__(14);
+function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, headers, renderEngine, assetsFolderName) {
+    if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
+    var server = new server_1.Server();
+    var router = new router_1.Router(routes);
+    var evaluator = new policy_1.PolicyEvaluator(policies);
+    return server.server(port)
+        .map(function (r) {
+        var response = r.res;
+        if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
+            response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
+        }
+        else {
+            if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
+                response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+            }
+        }
+        if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
+            response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
+        if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
+            response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
+        if (r.req.method === 'OPTIONS') {
+            r.res.writeHead(200);
+            r.res.end();
+        }
+        if (headers !== null && typeof headers !== 'undefined') {
+            headers.forEach(function (h) {
+                response.setHeader(h.key, h.value);
+            });
+        }
+        //give the response the ability to send back responses
+        response.sendFile = function (path, ct, size) {
+            var rs = fs_extra_1.createReadStream(path);
+            r.res.setHeader('Content-Type', ct);
+            if (size !== null && typeof size !== 'undefined')
+                r.res.setHeader('Content-Length', "" + size);
+            r.res.writeHead(200);
+            rs.pipe(r.res);
+        };
+        //check if a render engine was provided; if so, use it; otherwise, use default render method;
+        if (renderEngine !== null && typeof renderEngine !== 'undefined') {
+            response.render = function (path, options) {
+                renderEngine(path, options, function (err, data) {
+                    if (err) {
+                        response.writeHead(500, { 'Content-Type': 'text/html' });
+                        response.end(data);
+                    }
+                    else {
+                        response.writeHead(200, { 'Content-Type': 'text/html' });
+                        response.end(data);
+                    }
+                });
+            };
+        }
+        else {
+            response.render = function (html) {
+                response.writeHead(200, { 'Content-Type': 'text/html' });
+                response.end(html);
+            };
+        }
+        return { req: r.req, res: response };
+    })
+        .map(function (r) {
+        var regex = "^/" + assetsFolderName + "/?[^s]+";
+        var match = r.req.url.match(regex);
+        var testAssets = match !== null;
+        if (testAssets) {
+            var type = mime.lookup(r.req.url);
+            var path = Path.join(process.cwd(), r.req.url);
+            var stats = fs_extra_1.statSync(path);
+            r.res.sendFile(path, type, stats.size);
+            return { req: r.req, res: r.res, pass: false };
+        }
+        else {
+            return r;
+        }
+    })
+        .map(function (r) {
+        var rr = {
+            req: (r.req.method.toUpperCase() !== ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(r.req) : r.req,
+            res: r.res,
+            pass: r.pass
+        };
+        return rr;
+    })
+        .do(function (r) { return console.log(r.req.url); })
+        .map(function (r) { return router.match(r); })
+        .switch()
+        .map(function (mr) {
+        var resload = new response_1.ResponseLoader(mr.reqres.res);
+        var response = resload.load();
+        var request = (mr.reqres.req.method.toUpperCase() === ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(mr.reqres.req) : mr.reqres.req;
+        var obj = { route: mr.route, reqres: { req: request, res: response, pass: mr.reqres.pass } };
+        return obj;
+    })
+        .map(function (mr) { return evaluator.evaluate(mr); })
+        .switch()
+        .map(function (er) {
+        var emr = {
+            pass: er.pass,
+            exec: er.reqres.pass,
+            req: er.reqres.req,
+            res: er.reqres.res,
+            route: er.route
+        };
+        return emr;
+    })
+        .map(function (fr) {
+        console.log(fr.exec, fr.pass);
+        if (!fr.pass && (fr.exec || typeof fr.exec === 'undefined')) {
+            errors_handler_1.ErrorHandler.policyError(fr.req, fr.res);
+            return fr;
+        }
+        else {
+            return fr;
+        }
+    });
+}
+exports.createServer = createServer;
+var server_2 = __webpack_require__(8);
+exports.Server = server_2.Server;
+//export { exportPolicies } from './exporters/export-policies';
+//export { exportRoutes } from './exporters/export-routes';
+var errors_handler_2 = __webpack_require__(3);
+exports.ErrorHandler = errors_handler_2.ErrorHandler;
+var request_2 = __webpack_require__(5);
+exports.RequestExtractor = request_2.RequestExtractor;
+var response_2 = __webpack_require__(6);
+exports.ResponseLoader = response_2.ResponseLoader;
+var request_handler_1 = __webpack_require__(9);
+exports.RequestHandler = request_handler_1.RequestHandler;
+var router_2 = __webpack_require__(7);
+exports.Router = router_2.Router;
+var policy_2 = __webpack_require__(4);
+exports.PolicyEvaluator = policy_2.PolicyEvaluator;
+
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
+__export(__webpack_require__(10));
+
+
+/***/ },
+/* 12 */
+/***/ function(module, exports) {
+
+module.exports = require("http");
+
+/***/ },
+/* 13 */
+/***/ function(module, exports) {
+
+module.exports = require("https");
+
+/***/ },
+/* 14 */
+/***/ function(module, exports) {
+
+module.exports = require("mime");
+
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
+
+module.exports = require("url");
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var main_1 = __webpack_require__(19);
+exports.policies = [].concat.apply([], main_1.policies);
+
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var main_1 = __webpack_require__(20);
+exports.routes = [].concat.apply([], main_1.routes);
+
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var fs_extra_1 = __webpack_require__(0);
+var pug_1 = __webpack_require__(21);
+var HomeHandler = (function () {
+    function HomeHandler() {
+    }
+    HomeHandler.main = function (req, res) {
+        fs_extra_1.readJSON('../hrm/src/assets/sandbox.json', function (err, data) {
+            var display = data.map(function (d) { return d.name; });
+            var html = pug_1.renderFile('views/main.pug', data);
+            res.render(html);
+        });
+    };
+    HomeHandler.post = function (req, res) {
+        //console.log(inspect(req, true, 5, true));
+        var sub = req.body.subscribe(function (data) {
+            res.json(data);
+        }, function () {
+            sub.unsubscribe();
+        }, function (err) { return console.log(err); });
+    };
+    HomeHandler.getById = function (req, res) {
+        var params = req.params;
+        console.log(params);
+        res.json(params);
+    };
+    HomeHandler.getByIdAndUsername = function (req, res) {
+        var params = req.params;
+        console.log(params);
+        res.json(params);
+    };
+    return HomeHandler;
+}());
+exports.HomeHandler = HomeHandler;
+
+
+/***/ },
+/* 19 */
+/***/ function(module, exports) {
+
+"use strict";
+"use strict";
+exports.policies = [
+    {
+        name: 'main',
+        method: function () { return true; }
+    }
+];
+
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var home_1 = __webpack_require__(18);
+exports.routes = [
+    {
+        path: '/',
+        verb: 'GET',
+        handler: home_1.HomeHandler.main,
+        policies: ['main']
+    },
+    {
+        path: '/',
+        verb: 'POST',
+        handler: home_1.HomeHandler.post,
+        policies: ['main']
+    },
+    {
+        path: '/:id',
+        verb: 'GET',
+        handler: home_1.HomeHandler.getById,
+        policies: []
+    },
+    {
+        path: '/:id/:username',
+        verb: 'GET',
+        handler: home_1.HomeHandler.getByIdAndUsername,
+        policies: []
+    }
+];
+
+
+/***/ },
+/* 21 */
+/***/ function(module, exports) {
+
+module.exports = require("pug");
+
+/***/ },
+/* 22 */,
+/* 23 */,
+/* 24 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var routes_1 = __webpack_require__(17);
+var policies_1 = __webpack_require__(16);
+var request_handler_1 = __webpack_require__(9);
+var index_1 = __webpack_require__(11);
+index_1.createServer(3000, routes_1.routes, policies_1.policies, null, '10.*')
+    .do(function (fr) { return console.log(fr.route); })
+    .subscribe(function (fr) {
+    request_handler_1.RequestHandler.handle(fr);
+});
+
+
+/***/ }
+/******/ ]);
+//# sourceMappingURL=test.js.map

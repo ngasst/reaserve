@@ -40,7 +40,8 @@ function createConfig(isDebug) {
 		},
 		output: {
 			path: path.join(__dirname, "build"),
-			filename: "[name].js"
+			filename: "[name].js",
+			libraryTarget: 'commonjs2'
 		},
 		resolve: {
 			extensions: ['.webpack.js', '.web.js', '.ts', '.js'],
