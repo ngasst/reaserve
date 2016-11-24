@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "declaration": false,
+        "declaration": true,
         "target": "ES5",
         "module": "commonjs",
         "moduleResolution": "node",
