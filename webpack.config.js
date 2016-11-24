@@ -36,8 +36,7 @@ function createConfig(isDebug) {
 			index: "./index.ts",
 			test: "./test.ts",
 			"export-routes": "./src/exporters/export-routes",
-			"export-policies": "./src/exporters/export-policies",
-			"export-responses": "./src/exporters/export-responses"
+			"export-policies": "./src/exporters/export-policies"
 		},
 		output: {
 			path: path.join(__dirname, "build"),
