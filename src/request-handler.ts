@@ -9,7 +9,7 @@ export class RequestHandler {
     }
 
     static handle(fr: FinalRequestObject): void {
-        let pass: boolean = ((fr.exec || typeof fr.exec === 'undefined') && fr.pass);
+        let pass: boolean = ((!fr.asset || typeof fr.asset === 'undefined') && fr.pass);
         if (pass) {
             fr.route.handler(fr.req, fr.res);
             

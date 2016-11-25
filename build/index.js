@@ -119,7 +119,7 @@ var PolicyEvaluator = (function () {
         return this.policies$
             .filter(function (pol) { return mr.route.policies.indexOf(pol.name) !== -1 || mr.route.policies.length === 0; })
             .map(function (p) { return p.method(mr.reqres); })
-            .do(function (val) { return console.log(val); })
+            .do(function (val) { return console.log('from policy evaluator: ', val); })
             .reduce(function (acc, val) { var num = val ? 0 : 1; return acc + num; }, 0)
             .map(function (guard) { return guard === 0 ? Object.assign({ route: mr.route, reqres: mr.reqres, pass: true }) : Object.assign({ route: mr.route, reqres: mr.reqres, pass: false }); });
     };
@@ -135,7 +135,7 @@ exports.PolicyEvaluator = PolicyEvaluator;
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var url_1 = __webpack_require__(15);
+var url_1 = __webpack_require__(18);
 var RequestExtractor = (function () {
     function RequestExtractor(req) {
         this.request = req;
@@ -231,7 +231,6 @@ exports.ResponseLoader = ResponseLoader;
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var errors_handler_1 = __webpack_require__(3);
 var Router = (function () {
     function Router(routes) {
         this.routes$ = rxjs_1.Observable.from(routes);
@@ -240,13 +239,13 @@ var Router = (function () {
         var _this = this;
         return this.routes$
             .map(function (r) { return _this.parseUrls(r, reqres); })
+            .do(function (mr) { return console.log(mr.reqres.req.url, mr.reqres.req.unparsedUrl, mr.route.path); })
             .filter(function (mr) {
             var test = (typeof mr.reqres.req !== 'undefined'
                 && mr.route.path === mr.reqres.req.unparsedUrl
                 && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase());
             return test;
-        })
-            .defaultIfEmpty(Object.assign({}, { reqres: reqres, route: { path: '/route-not-found', verb: 'GET', policies: [], handler: errors_handler_1.ErrorHandler.routeNotFound } }));
+        });
         //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
         //.do(r => console.log(r));
     };
@@ -300,8 +299,8 @@ exports.Router = Router;
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var http_1 = __webpack_require__(12);
-var https_1 = __webpack_require__(13);
+var http_1 = __webpack_require__(15);
+var https_1 = __webpack_require__(16);
 var Server = (function () {
     function Server(protocol) {
         if (protocol === void 0) { protocol = 'http'; }
@@ -348,7 +347,7 @@ var RequestHandler = (function () {
         //
     }
     RequestHandler.handle = function (fr) {
-        var pass = ((fr.exec || typeof fr.exec === 'undefined') && fr.pass);
+        var pass = ((!fr.asset || typeof fr.asset === 'undefined') && fr.pass);
         if (pass) {
             fr.route.handler(fr.req, fr.res);
         }
@@ -365,114 +364,49 @@ exports.RequestHandler = RequestHandler;
 "use strict";
 "use strict";
 var server_1 = __webpack_require__(8);
-var router_1 = __webpack_require__(7);
 var policy_1 = __webpack_require__(4);
 var response_1 = __webpack_require__(6);
 var request_1 = __webpack_require__(5);
 var errors_handler_1 = __webpack_require__(3);
-var Path = __webpack_require__(2);
-var fs_extra_1 = __webpack_require__(0);
-var mime = __webpack_require__(14);
-function createServer(port, routes, policies, methodsAllowed, allowedOrigins, allowedHeaders, headers, renderEngine, assetsFolderName) {
+var server_partials_1 = __webpack_require__(12);
+function createServer(port, routes, policies, rerouteUnmatched, allowedOrigins, allowedMethods, allowedHeaders, additionalHeaders, renderEngine, assetsFolderName) {
+    if (rerouteUnmatched === void 0) { rerouteUnmatched = false; }
+    if (allowedOrigins === void 0) { allowedOrigins = ''; }
+    if (allowedMethods === void 0) { allowedMethods = []; }
+    if (allowedHeaders === void 0) { allowedHeaders = []; }
+    if (additionalHeaders === void 0) { additionalHeaders = []; }
+    if (renderEngine === void 0) { renderEngine = 'default'; }
     if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
     var server = new server_1.Server();
-    var router = new router_1.Router(routes);
     var evaluator = new policy_1.PolicyEvaluator(policies);
     return server.server(port)
         .map(function (r) {
-        var response = r.res;
-        if ((allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'array')) {
-            response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
-        }
-        else {
-            if (allowedOrigins !== null && typeof allowedOrigins !== 'undefined' && typeof allowedOrigins === 'string') {
-                response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
-            }
-        }
-        if ((methodsAllowed !== null && typeof methodsAllowed !== 'undefined'))
-            response.setHeader('Access-Control-Allow-Methods', methodsAllowed.join(','));
-        if ((allowedHeaders !== null && typeof allowedHeaders !== 'undefined'))
-            response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
-        if (r.req.method === 'OPTIONS') {
-            r.res.writeHead(200);
-            r.res.end();
-        }
-        if (headers !== null && typeof headers !== 'undefined') {
-            headers.forEach(function (h) {
-                response.setHeader(h.key, h.value);
-            });
-        }
-        //give the response the ability to send back responses
-        response.sendFile = function (path, ct, size) {
-            var rs = fs_extra_1.createReadStream(path);
-            r.res.setHeader('Content-Type', ct);
-            if (size !== null && typeof size !== 'undefined')
-                r.res.setHeader('Content-Length', "" + size);
-            r.res.writeHead(200);
-            rs.pipe(r.res);
-        };
-        //check if a render engine was provided; if so, use it; otherwise, use default render method;
-        if (renderEngine !== null && typeof renderEngine !== 'undefined') {
-            response.render = function (path, options) {
-                renderEngine(path, options, function (err, data) {
-                    if (err) {
-                        response.writeHead(500, { 'Content-Type': 'text/html' });
-                        response.end(data);
-                    }
-                    else {
-                        response.writeHead(200, { 'Content-Type': 'text/html' });
-                        response.end(data);
-                    }
-                });
-            };
-        }
-        else {
-            response.render = function (html) {
-                response.writeHead(200, { 'Content-Type': 'text/html' });
-                response.end(html);
-            };
-        }
-        return { req: r.req, res: response };
+        return server_partials_1.manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders);
     })
         .map(function (r) {
-        var regex = "^/" + assetsFolderName + "/?[^s]+";
-        var match = r.req.url.match(regex);
-        var testAssets = match !== null;
-        if (testAssets) {
-            var type = mime.lookup(r.req.url);
-            var path = Path.join(process.cwd(), r.req.url);
-            var stats = fs_extra_1.statSync(path);
-            r.res.sendFile(path, type, stats.size);
-            return { req: r.req, res: r.res, pass: false };
-        }
-        else {
-            return r;
-        }
+        return server_partials_1.manageAssets(r, assetsFolderName);
     })
         .map(function (r) {
-        var rr = {
-            req: (r.req.method.toUpperCase() !== ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(r.req) : r.req,
-            res: r.res,
-            pass: r.pass
-        };
-        return rr;
+        // for some reason, rxjs throws an error when trying to access the requent event data after it has been matched.
+        // check here if this is a request type that has post data and if so, extract it before matching.
+        return Object.assign(r, { req: (r.req.method.toUpperCase() !== ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(r.req) : r.req });
     })
-        .do(function (r) { return console.log(r.req.url); })
-        .map(function (r) { return router.match(r); })
+        .map(function (r) { return server_partials_1.manageRouting(routes, r, rerouteUnmatched); })
         .switch()
         .map(function (mr) {
         var resload = new response_1.ResponseLoader(mr.reqres.res);
         var response = resload.load();
         var request = (mr.reqres.req.method.toUpperCase() === ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(mr.reqres.req) : mr.reqres.req;
-        var obj = { route: mr.route, reqres: { req: request, res: response, pass: mr.reqres.pass } };
+        var obj = { route: mr.route, reqres: { req: request, res: response, asset: mr.reqres.asset, redirect: mr.reqres.redirect } };
         return obj;
     })
         .map(function (mr) { return evaluator.evaluate(mr); })
-        .switch()
+        .concatAll()
         .map(function (er) {
         var emr = {
             pass: er.pass,
-            exec: er.reqres.pass,
+            asset: er.reqres.asset,
+            redirect: er.reqres.redirect,
             req: er.reqres.req,
             res: er.reqres.res,
             route: er.route
@@ -480,8 +414,8 @@ function createServer(port, routes, policies, methodsAllowed, allowedOrigins, al
         return emr;
     })
         .map(function (fr) {
-        console.log(fr.exec, fr.pass);
-        if (!fr.pass && (fr.exec || typeof fr.exec === 'undefined')) {
+        console.log('exec from index: ', 'redirect: ', fr.redirect, 'asset: ', fr.asset, 'policy :', fr.pass);
+        if (!fr.pass && (fr.asset || typeof fr.asset === 'undefined')) {
             errors_handler_1.ErrorHandler.policyError(fr.req, fr.res);
             return fr;
         }
@@ -503,8 +437,8 @@ var response_2 = __webpack_require__(6);
 exports.ResponseLoader = response_2.ResponseLoader;
 var request_handler_1 = __webpack_require__(9);
 exports.RequestHandler = request_handler_1.RequestHandler;
-var router_2 = __webpack_require__(7);
-exports.Router = router_2.Router;
+var router_1 = __webpack_require__(7);
+exports.Router = router_1.Router;
 var policy_2 = __webpack_require__(4);
 exports.PolicyEvaluator = policy_2.PolicyEvaluator;
 
@@ -523,27 +457,176 @@ __export(__webpack_require__(10));
 
 /***/ },
 /* 12 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-module.exports = require("http");
+"use strict";
+"use strict";
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
+__export(__webpack_require__(14));
+__export(__webpack_require__(13));
+__export(__webpack_require__(28));
+
 
 /***/ },
 /* 13 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-module.exports = require("https");
+"use strict";
+"use strict";
+var fs_extra_1 = __webpack_require__(0);
+var Path = __webpack_require__(2);
+var mime = __webpack_require__(17);
+function manageAssets(r, assetsFolderName) {
+    //remap any incoming request asking for a common asset file to the assets folder
+    var regex = /(^\/.+\.[(js$)|(css$)|png]+)/;
+    r.req.url = regex.exec(r.req.url) !== null ? r.req.url.replace(regex, "/assets$1") : r.req.url;
+    var regex2 = /(^\/assets\/assets)/;
+    var testAssets = (regex2.exec(r.req.url) !== null);
+    r.req.url = testAssets ? r.req.url.replace(regex2, "/assets") : r.req.url;
+    if (testAssets) {
+        var type = mime.lookup(r.req.url);
+        var path = Path.join(process.cwd(), r.req.url);
+        var stats = fs_extra_1.statSync(path);
+        r.res.sendFile(path, type, stats.size);
+    }
+    return Object.assign(r, { asset: testAssets });
+}
+exports.manageAssets = manageAssets;
+
 
 /***/ },
 /* 14 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-module.exports = require("mime");
+"use strict";
+"use strict";
+var fs_extra_1 = __webpack_require__(0);
+function manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders) {
+    var response = r.res;
+    if ((typeof allowedOrigins === 'array' && allowedOrigins.length > 0)) {
+        response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
+    }
+    else {
+        if (typeof allowedOrigins === 'string' && allowedOrigins.length > 0) {
+            response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+        }
+    }
+    if ((allowedMethods.length > 0))
+        response.setHeader('Access-Control-Allow-Methods', allowedMethods.join(','));
+    if ((allowedHeaders.length > 0))
+        response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
+    if (r.req.method === 'OPTIONS') {
+        r.res.writeHead(200);
+        r.res.end();
+    }
+    if (additionalHeaders.length > 0) {
+        additionalHeaders.forEach(function (h) {
+            response.setHeader(h.key, h.value);
+        });
+    }
+    //give the response the ability to send back responses
+    response.sendFile = function (path, ct, size) {
+        var rs = fs_extra_1.createReadStream(path);
+        r.res.setHeader('Content-Type', ct);
+        if (size !== null && typeof size !== 'undefined')
+            r.res.setHeader('Content-Length', "" + size);
+        r.res.writeHead(200);
+        rs.pipe(r.res);
+    };
+    //check if a render engine was provided; if so, use it; otherwise, use default render method;
+    if (typeof renderEngine === 'string') {
+        //check if this is the default render engine and define basic render method
+        if (renderEngine === 'default') {
+            response.render = function (html) {
+                response.writeHead(200, { 'Content-Type': 'text/html' });
+                response.end(html);
+            };
+        }
+    }
+    else {
+        response.render = function (path, options) {
+            renderEngine(path, options, function (err, data) {
+                if (err) {
+                    response.writeHead(500, { 'Content-Type': 'text/html' });
+                    response.end(data);
+                }
+                else {
+                    response.writeHead(200, { 'Content-Type': 'text/html' });
+                    response.end(data);
+                }
+            });
+        };
+    }
+    return { req: r.req, res: response };
+}
+exports.manageHeaders = manageHeaders;
+
 
 /***/ },
 /* 15 */
 /***/ function(module, exports) {
 
+module.exports = require("http");
+
+/***/ },
+/* 16 */
+/***/ function(module, exports) {
+
+module.exports = require("https");
+
+/***/ },
+/* 17 */
+/***/ function(module, exports) {
+
+module.exports = require("mime");
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
 module.exports = require("url");
+
+/***/ },
+/* 19 */,
+/* 20 */,
+/* 21 */,
+/* 22 */,
+/* 23 */,
+/* 24 */,
+/* 25 */,
+/* 26 */,
+/* 27 */,
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var rxjs_1 = __webpack_require__(1);
+var index_1 = __webpack_require__(10);
+function manageRouting(routes, r, redirect) {
+    var router = new index_1.Router(routes);
+    var matched$ = router.match(r);
+    return matched$.isEmpty().map(function (t) {
+        if (t) {
+            if (redirect && !r.asset) {
+                var mr = Object.assign({}, { reqres: Object.assign(r, { redirect: redirect }), route: { path: r.req.url, verb: r.req.method, policies: [], handler: null } });
+                return rxjs_1.Observable.of(mr);
+            }
+            else {
+                var mr = Object.assign({}, { reqres: r, route: { path: '/route-not-found', verb: 'GET', policies: [], handler: index_1.ErrorHandler.routeNotFound } });
+                return rxjs_1.Observable.of(mr);
+            }
+        }
+        else {
+            return matched$;
+        }
+    })
+        .switch();
+}
+exports.manageRouting = manageRouting;
+
 
 /***/ }
 /******/ ]);

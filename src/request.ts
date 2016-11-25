@@ -60,5 +60,7 @@ export interface MatchedRequest {
 export interface RequestResponse {
     req: Request;
     res: Response;
+    asset?: boolean;
+    redirect?: boolean;
     pass?: boolean;
 }

@@ -12,7 +12,7 @@ export class PolicyEvaluator {
         return this.policies$
         .filter((pol: Policy) => mr.route.policies.indexOf(pol.name) !== -1 || mr.route.policies.length === 0)
         .map(p => p.method(mr.reqres))
-        .do(val => console.log(val))
+        .do(val => console.log('from policy evaluator: ', val))
         .reduce((acc, val) => {let num = val ? 0 : 1; return acc + num }, 0)
         .map(guard => guard === 0 ? Object.assign({route: mr.route, reqres: mr.reqres, pass: true}) : Object.assign({route: mr.route, reqres: mr.reqres, pass: false}));
     }

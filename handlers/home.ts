@@ -7,7 +7,8 @@ import { renderFile } from 'pug';
 
 export class HomeHandler {
     static main(req: Request, res: Response): void {
-        readJSON('../hrm/src/assets/sandbox.json', (err, data) => {
+        readJSON('../hrm/assets/sandbox.json', (err, data) => {
+            if (err) console.log(err);
             let display: string[] = data.map(d => d.name);
             let html = renderFile('views/main.pug', data);
             res.render(html);
@@ -27,14 +28,12 @@ export class HomeHandler {
 
     static getById(req: Request, res: Response): void {
         let params: any = req.params;
-        console.log(params);
         res.json(params);
     }
     
 
     static getByIdAndUsername(req: Request, res: Response): void {
         let params: any = req.params;
-        console.log(params);
         res.json(params);
     }
 }

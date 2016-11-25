@@ -14,6 +14,7 @@ export class Router {
     match(reqres: RequestResponse): Observable<MatchedRequest> {
         return this.routes$
             .map(r => this.parseUrls(r, reqres))
+            .do( mr => console.log(mr.reqres.req.url, mr.reqres.req.unparsedUrl, mr.route.path))
             .filter((mr: MatchedRequest) => {
                 let test: boolean = 
                 (
@@ -22,8 +23,7 @@ export class Router {
                     && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase()
                 );
                 return test;
-            })
-            .defaultIfEmpty(Object.assign({}, {reqres: reqres, route: {path: '/route-not-found', verb: 'GET', policies: [], handler: ErrorHandler.routeNotFound}}))
+            });
             //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
             //.do(r => console.log(r));
     }

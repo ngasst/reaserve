@@ -45,7 +45,8 @@ export interface FinalRequestObject {
     req: Request;
     res: Response;
     pass: boolean;
-    exec?: boolean;
+    redirect: boolean;
+    asset: boolean;
 }
 
 export interface IncomingObject {
