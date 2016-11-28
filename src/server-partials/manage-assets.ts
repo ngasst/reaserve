@@ -6,7 +6,7 @@ const mime = require('mime');
 
 export function manageAssets(r: RequestResponse, assetsFolderName: string): RequestResponse {
     //remap any incoming request asking for a common asset file to the assets folder
-    let regex = /(^\/.+\.[(js$)|(css$)|png]+)/;
+    let regex = /(^\/.+\.[(js$)|(css$)|png$]+$)/;
     r.req.url = regex.exec(r.req.url) !== null ? r.req.url.replace(regex, `/assets$1`) : r.req.url;
     
     let regex2 = /(^\/assets\/assets)/;

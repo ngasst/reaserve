@@ -14,7 +14,7 @@ export class Router {
     match(reqres: RequestResponse): Observable<MatchedRequest> {
         return this.routes$
             .map(r => this.parseUrls(r, reqres))
-            .do( mr => console.log(mr.reqres.req.url, mr.reqres.req.unparsedUrl, mr.route.path))
+            .do( mr => console.log('req url: ' +mr.reqres.req.url, 'unparsed url :' + mr.reqres.req.unparsedUrl, 'server route path :' + mr.route.path))
             .filter((mr: MatchedRequest) => {
                 let test: boolean = 
                 (
@@ -36,9 +36,10 @@ export class Router {
         labels = labels === null ? [] : labels;
         let valuesArray: string[] = url.replace(base, '').split('/');
         let values = valuesArray.filter(s => s.length > 1);
-        let newPath: string = base.length > 1 ? base.concat('/').concat(values.join('/')) : base.concat(values.join('/'));
+        let newPath: string = base.length > 1 ? base.concat(values.join('/')) : base.concat(values.join('/'));
         
         let mr: MatchedRequest;
+        console.log('from router.ts /values', values);
                 
         if ((labels.length > 0 && labels.length === values.length)) {
             //console.log(labels);

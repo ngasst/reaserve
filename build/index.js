@@ -63,7 +63,7 @@ module.exports =
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 11);
+/******/ 	return __webpack_require__(__webpack_require__.s = 10);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -86,6 +86,92 @@ module.exports = require("path");
 
 /***/ },
 /* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var server_1 = __webpack_require__(8);
+var policy_1 = __webpack_require__(5);
+var response_1 = __webpack_require__(7);
+var request_1 = __webpack_require__(6);
+var errors_handler_1 = __webpack_require__(4);
+var server_partials_1 = __webpack_require__(12);
+function createServer(port, routes, policies, rerouteUnmatched, allowedOrigins, allowedMethods, allowedHeaders, additionalHeaders, renderEngine, assetsFolderName) {
+    if (rerouteUnmatched === void 0) { rerouteUnmatched = false; }
+    if (allowedOrigins === void 0) { allowedOrigins = ''; }
+    if (allowedMethods === void 0) { allowedMethods = []; }
+    if (allowedHeaders === void 0) { allowedHeaders = []; }
+    if (additionalHeaders === void 0) { additionalHeaders = []; }
+    if (renderEngine === void 0) { renderEngine = 'default'; }
+    if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
+    var server = new server_1.Server();
+    var evaluator = new policy_1.PolicyEvaluator(policies);
+    return server.server(port)
+        .map(function (r) {
+        return server_partials_1.manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders);
+    })
+        .map(function (r) {
+        return server_partials_1.manageAssets(r, assetsFolderName);
+    })
+        .map(function (r) {
+        // for some reason, rxjs throws an error when trying to access the requent event data after it has been matched.
+        // check here if this is a request type that has post data and if so, extract it before matching.
+        return Object.assign(r, { req: (r.req.method.toUpperCase() !== ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(r.req) : r.req });
+    })
+        .map(function (r) { return server_partials_1.manageRouting(routes, r, rerouteUnmatched); })
+        .switch()
+        .map(function (mr) {
+        var resload = new response_1.ResponseLoader(mr.reqres.res);
+        var response = resload.load();
+        var request = (mr.reqres.req.method.toUpperCase() === ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(mr.reqres.req) : mr.reqres.req;
+        var obj = { route: mr.route, reqres: { req: request, res: response, asset: mr.reqres.asset, redirect: mr.reqres.redirect } };
+        return obj;
+    })
+        .map(function (mr) { return evaluator.evaluate(mr); })
+        .concatAll()
+        .map(function (er) {
+        var emr = {
+            pass: er.pass,
+            asset: er.reqres.asset,
+            redirect: er.reqres.redirect,
+            req: er.reqres.req,
+            res: er.reqres.res,
+            route: er.route
+        };
+        return emr;
+    })
+        .map(function (fr) {
+        console.log('exec from index: ', 'redirect: ', fr.redirect, 'asset: ', fr.asset, 'policy :', fr.pass);
+        if (!fr.pass && (fr.asset || typeof fr.asset === 'undefined')) {
+            errors_handler_1.ErrorHandler.policyError(fr.req, fr.res);
+            return fr;
+        }
+        else {
+            return fr;
+        }
+    });
+}
+exports.createServer = createServer;
+var server_2 = __webpack_require__(8);
+exports.Server = server_2.Server;
+//export { exportPolicies } from './exporters/export-policies';
+//export { exportRoutes } from './exporters/export-routes';
+var errors_handler_2 = __webpack_require__(4);
+exports.ErrorHandler = errors_handler_2.ErrorHandler;
+var request_2 = __webpack_require__(6);
+exports.RequestExtractor = request_2.RequestExtractor;
+var response_2 = __webpack_require__(7);
+exports.ResponseLoader = response_2.ResponseLoader;
+var request_handler_1 = __webpack_require__(9);
+exports.RequestHandler = request_handler_1.RequestHandler;
+var router_1 = __webpack_require__(11);
+exports.Router = router_1.Router;
+var policy_2 = __webpack_require__(5);
+exports.PolicyEvaluator = policy_2.PolicyEvaluator;
+
+
+/***/ },
+/* 4 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -105,7 +191,7 @@ exports.ErrorHandler = ErrorHandler;
 
 
 /***/ },
-/* 4 */
+/* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -129,13 +215,13 @@ exports.PolicyEvaluator = PolicyEvaluator;
 
 
 /***/ },
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var url_1 = __webpack_require__(18);
+var url_1 = __webpack_require__(19);
 var RequestExtractor = (function () {
     function RequestExtractor(req) {
         this.request = req;
@@ -172,7 +258,7 @@ exports.RequestExtractor = RequestExtractor;
 
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -225,82 +311,14 @@ exports.ResponseLoader = ResponseLoader;
 
 
 /***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-"use strict";
-var rxjs_1 = __webpack_require__(1);
-var Router = (function () {
-    function Router(routes) {
-        this.routes$ = rxjs_1.Observable.from(routes);
-    }
-    Router.prototype.match = function (reqres) {
-        var _this = this;
-        return this.routes$
-            .map(function (r) { return _this.parseUrls(r, reqres); })
-            .do(function (mr) { return console.log(mr.reqres.req.url, mr.reqres.req.unparsedUrl, mr.route.path); })
-            .filter(function (mr) {
-            var test = (typeof mr.reqres.req !== 'undefined'
-                && mr.route.path === mr.reqres.req.unparsedUrl
-                && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase());
-            return test;
-        });
-        //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
-        //.do(r => console.log(r));
-    };
-    Router.prototype.parseUrls = function (route, reqres) {
-        var path = route.path;
-        var url = reqres.req.url;
-        var labels = path.match(/(:[^\/|\s]+)/g);
-        var base = path.match(/(^\/[a-zA-Z-_\/]*)/g)[0];
-        labels = labels === null ? [] : labels;
-        var valuesArray = url.replace(base, '').split('/');
-        var values = valuesArray.filter(function (s) { return s.length > 1; });
-        var newPath = base.length > 1 ? base.concat('/').concat(values.join('/')) : base.concat(values.join('/'));
-        var mr;
-        if ((labels.length > 0 && labels.length === values.length)) {
-            //console.log(labels);
-            var pairs = labels.map(function (l, i) { return l + "=" + values[i]; }).map(function (s) { return s.slice(1, s.length); });
-            var newUrl = base.concat('?').concat(pairs.join('&'));
-            var newRoute = {
-                handler: route.handler,
-                policies: route.policies,
-                verb: route.verb,
-                path: newPath
-            };
-            var newReq = Object.assign(reqres.req, { url: newUrl, unparsedUrl: url });
-            mr = {
-                route: newRoute,
-                reqres: Object.assign(reqres, { req: newReq })
-            };
-        }
-        else {
-            mr = {
-                route: route,
-                reqres: {
-                    req: Object.assign({}, reqres.req, { unparsedUrl: url }),
-                    res: reqres.res
-                }
-            };
-        }
-        //console.log(mr.route.path, labels, reqres.req.url, reqres.req.parsedUrl);
-        return mr;
-    };
-    return Router;
-}());
-exports.Router = Router;
-
-
-/***/ },
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var http_1 = __webpack_require__(15);
-var https_1 = __webpack_require__(16);
+var http_1 = __webpack_require__(16);
+var https_1 = __webpack_require__(17);
 var Server = (function () {
     function Server(protocol) {
         if (protocol === void 0) { protocol = 'http'; }
@@ -363,84 +381,10 @@ exports.RequestHandler = RequestHandler;
 
 "use strict";
 "use strict";
-var server_1 = __webpack_require__(8);
-var policy_1 = __webpack_require__(4);
-var response_1 = __webpack_require__(6);
-var request_1 = __webpack_require__(5);
-var errors_handler_1 = __webpack_require__(3);
-var server_partials_1 = __webpack_require__(12);
-function createServer(port, routes, policies, rerouteUnmatched, allowedOrigins, allowedMethods, allowedHeaders, additionalHeaders, renderEngine, assetsFolderName) {
-    if (rerouteUnmatched === void 0) { rerouteUnmatched = false; }
-    if (allowedOrigins === void 0) { allowedOrigins = ''; }
-    if (allowedMethods === void 0) { allowedMethods = []; }
-    if (allowedHeaders === void 0) { allowedHeaders = []; }
-    if (additionalHeaders === void 0) { additionalHeaders = []; }
-    if (renderEngine === void 0) { renderEngine = 'default'; }
-    if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
-    var server = new server_1.Server();
-    var evaluator = new policy_1.PolicyEvaluator(policies);
-    return server.server(port)
-        .map(function (r) {
-        return server_partials_1.manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders);
-    })
-        .map(function (r) {
-        return server_partials_1.manageAssets(r, assetsFolderName);
-    })
-        .map(function (r) {
-        // for some reason, rxjs throws an error when trying to access the requent event data after it has been matched.
-        // check here if this is a request type that has post data and if so, extract it before matching.
-        return Object.assign(r, { req: (r.req.method.toUpperCase() !== ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(r.req) : r.req });
-    })
-        .map(function (r) { return server_partials_1.manageRouting(routes, r, rerouteUnmatched); })
-        .switch()
-        .map(function (mr) {
-        var resload = new response_1.ResponseLoader(mr.reqres.res);
-        var response = resload.load();
-        var request = (mr.reqres.req.method.toUpperCase() === ('GET' || 'DELETE')) ? request_1.RequestExtractor.extract(mr.reqres.req) : mr.reqres.req;
-        var obj = { route: mr.route, reqres: { req: request, res: response, asset: mr.reqres.asset, redirect: mr.reqres.redirect } };
-        return obj;
-    })
-        .map(function (mr) { return evaluator.evaluate(mr); })
-        .concatAll()
-        .map(function (er) {
-        var emr = {
-            pass: er.pass,
-            asset: er.reqres.asset,
-            redirect: er.reqres.redirect,
-            req: er.reqres.req,
-            res: er.reqres.res,
-            route: er.route
-        };
-        return emr;
-    })
-        .map(function (fr) {
-        console.log('exec from index: ', 'redirect: ', fr.redirect, 'asset: ', fr.asset, 'policy :', fr.pass);
-        if (!fr.pass && (fr.asset || typeof fr.asset === 'undefined')) {
-            errors_handler_1.ErrorHandler.policyError(fr.req, fr.res);
-            return fr;
-        }
-        else {
-            return fr;
-        }
-    });
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
-exports.createServer = createServer;
-var server_2 = __webpack_require__(8);
-exports.Server = server_2.Server;
-//export { exportPolicies } from './exporters/export-policies';
-//export { exportRoutes } from './exporters/export-routes';
-var errors_handler_2 = __webpack_require__(3);
-exports.ErrorHandler = errors_handler_2.ErrorHandler;
-var request_2 = __webpack_require__(5);
-exports.RequestExtractor = request_2.RequestExtractor;
-var response_2 = __webpack_require__(6);
-exports.ResponseLoader = response_2.ResponseLoader;
-var request_handler_1 = __webpack_require__(9);
-exports.RequestHandler = request_handler_1.RequestHandler;
-var router_1 = __webpack_require__(7);
-exports.Router = router_1.Router;
-var policy_2 = __webpack_require__(4);
-exports.PolicyEvaluator = policy_2.PolicyEvaluator;
+__export(__webpack_require__(3));
 
 
 /***/ },
@@ -449,10 +393,67 @@ exports.PolicyEvaluator = policy_2.PolicyEvaluator;
 
 "use strict";
 "use strict";
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
-__export(__webpack_require__(10));
+var rxjs_1 = __webpack_require__(1);
+var Router = (function () {
+    function Router(routes) {
+        this.routes$ = rxjs_1.Observable.from(routes);
+    }
+    Router.prototype.match = function (reqres) {
+        var _this = this;
+        return this.routes$
+            .map(function (r) { return _this.parseUrls(r, reqres); })
+            .do(function (mr) { return console.log('req url: ' + mr.reqres.req.url, 'unparsed url :' + mr.reqres.req.unparsedUrl, 'server route path :' + mr.route.path); })
+            .filter(function (mr) {
+            var test = (typeof mr.reqres.req !== 'undefined'
+                && mr.route.path === mr.reqres.req.unparsedUrl
+                && mr.route.verb.toUpperCase() === mr.reqres.req.method.toUpperCase());
+            return test;
+        });
+        //.do(r => console.log(r.route.path, r.reqres.req.url, r.reqres.req.unparsedUrl))
+        //.do(r => console.log(r));
+    };
+    Router.prototype.parseUrls = function (route, reqres) {
+        var path = route.path;
+        var url = reqres.req.url;
+        var labels = path.match(/(:[^\/|\s]+)/g);
+        var base = path.match(/(^\/[a-zA-Z-_\/]*)/g)[0];
+        labels = labels === null ? [] : labels;
+        var valuesArray = url.replace(base, '').split('/');
+        var values = valuesArray.filter(function (s) { return s.length > 1; });
+        var newPath = base.length > 1 ? base.concat(values.join('/')) : base.concat(values.join('/'));
+        var mr;
+        console.log('from router.ts /values', values);
+        if ((labels.length > 0 && labels.length === values.length)) {
+            //console.log(labels);
+            var pairs = labels.map(function (l, i) { return l + "=" + values[i]; }).map(function (s) { return s.slice(1, s.length); });
+            var newUrl = base.concat('?').concat(pairs.join('&'));
+            var newRoute = {
+                handler: route.handler,
+                policies: route.policies,
+                verb: route.verb,
+                path: newPath
+            };
+            var newReq = Object.assign(reqres.req, { url: newUrl, unparsedUrl: url });
+            mr = {
+                route: newRoute,
+                reqres: Object.assign(reqres, { req: newReq })
+            };
+        }
+        else {
+            mr = {
+                route: route,
+                reqres: {
+                    req: Object.assign({}, reqres.req, { unparsedUrl: url }),
+                    res: reqres.res
+                }
+            };
+        }
+        //console.log(mr.route.path, labels, reqres.req.url, reqres.req.parsedUrl);
+        return mr;
+    };
+    return Router;
+}());
+exports.Router = Router;
 
 
 /***/ },
@@ -466,7 +467,7 @@ function __export(m) {
 }
 __export(__webpack_require__(14));
 __export(__webpack_require__(13));
-__export(__webpack_require__(28));
+__export(__webpack_require__(15));
 
 
 /***/ },
@@ -477,10 +478,10 @@ __export(__webpack_require__(28));
 "use strict";
 var fs_extra_1 = __webpack_require__(0);
 var Path = __webpack_require__(2);
-var mime = __webpack_require__(17);
+var mime = __webpack_require__(18);
 function manageAssets(r, assetsFolderName) {
     //remap any incoming request asking for a common asset file to the assets folder
-    var regex = /(^\/.+\.[(js$)|(css$)|png]+)/;
+    var regex = /(^\/.+\.[(js$)|(css$)|png$]+$)/;
     r.req.url = regex.exec(r.req.url) !== null ? r.req.url.replace(regex, "/assets$1") : r.req.url;
     var regex2 = /(^\/assets\/assets)/;
     var testAssets = (regex2.exec(r.req.url) !== null);
@@ -566,45 +567,12 @@ exports.manageHeaders = manageHeaders;
 
 /***/ },
 /* 15 */
-/***/ function(module, exports) {
-
-module.exports = require("http");
-
-/***/ },
-/* 16 */
-/***/ function(module, exports) {
-
-module.exports = require("https");
-
-/***/ },
-/* 17 */
-/***/ function(module, exports) {
-
-module.exports = require("mime");
-
-/***/ },
-/* 18 */
-/***/ function(module, exports) {
-
-module.exports = require("url");
-
-/***/ },
-/* 19 */,
-/* 20 */,
-/* 21 */,
-/* 22 */,
-/* 23 */,
-/* 24 */,
-/* 25 */,
-/* 26 */,
-/* 27 */,
-/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(1);
-var index_1 = __webpack_require__(10);
+var index_1 = __webpack_require__(3);
 function manageRouting(routes, r, redirect) {
     var router = new index_1.Router(routes);
     var matched$ = router.match(r);
@@ -627,6 +595,30 @@ function manageRouting(routes, r, redirect) {
 }
 exports.manageRouting = manageRouting;
 
+
+/***/ },
+/* 16 */
+/***/ function(module, exports) {
+
+module.exports = require("http");
+
+/***/ },
+/* 17 */
+/***/ function(module, exports) {
+
+module.exports = require("https");
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
+module.exports = require("mime");
+
+/***/ },
+/* 19 */
+/***/ function(module, exports) {
+
+module.exports = require("url");
 
 /***/ }
 /******/ ]);
