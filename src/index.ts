@@ -7,6 +7,8 @@ import { ResponseLoader, Response } from './response';
 import { RequestExtractor, Request, RequestResponse, MatchedRequest } from './request';
 import { ErrorHandler } from './handlers/errors-handler';
 import { manageHeaders, manageAssets, manageRouting } from './server-partials';
+import { AssetHandler } from './asset-handler';
+import { manageRequestRouteRemapping } from './server-partials';
 
 
 
@@ -29,17 +31,25 @@ export function createServer(
         return manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders);
     })
     .map((r: RequestResponse) => {
-        return manageAssets(r, assetsFolderName);
+        return manageAssets(r);
     })
-    .map((r: RequestResponse) => {
+    /*.map((r: RequestResponse) => {
         // for some reason, rxjs throws an error when trying to access the requent event data after it has been matched.
         // check here if this is a request type that has post data and if so, extract it before matching.
-        return Object.assign(r, {req: (r.req.method.toUpperCase() !== ('GET'||'DELETE')) ? RequestExtractor.extract(r.req) : r.req});
+        //return Object.assign(r, {req: (r.req.method.toUpperCase() !== ('GET'||'DELETE')) ? RequestExtractor.extract(r.req) : r.req});
+    })*/
+    .map((r: RequestResponse) => {
+        if (['GET', 'DELETE'].indexOf(r.req.method.toUpperCase()) !== -1)
+            return Observable.of(r);
+       return RequestExtractor.extractBody(r);
     })
+    //.do(r => console.log(r.req.url))
+    .switch()
     //match the route from the request to the app routes, loaded above [import {routes} from './routes']
     .map((r: RequestResponse) => manageRouting(routes, r, rerouteUnmatched))
     //unwrap observables to a first dergree
     .switch()
+    .map((mr: MatchedRequest) => manageRequestRouteRemapping(mr))
     //build the right type of request/response object that has custom methods on response
     //load url parameters as parsed data here
     .map((mr: MatchedRequest) => {
@@ -53,7 +63,7 @@ export function createServer(
     .map((mr: MatchedRequest) => evaluator.evaluate(mr))
     //we now have a route that has been matched and has gone through the policy filter.
     //flatten observables to first degree
-    .concatAll()
+    .switch()
     //build the final object to be passed onto the application.
     .map((er: EvaluatedMatchedRequest) => {
         let emr: FinalRequestObject = {
@@ -69,19 +79,22 @@ export function createServer(
     //Now that we have gone through the basic request filtration, let's decide if we handle this request or if we reject it
     //if it passes, carry on, otherwise, send an policy error back
     .map((fr: FinalRequestObject) => {
-        console.log('exec from index: ', 'redirect: ', fr.redirect, 'asset: ', fr.asset, 'policy :', fr.pass);
-        if (!fr.pass && (fr.asset || typeof fr.asset === 'undefined')) {
-            ErrorHandler.policyError(fr.req, fr.res);
-            return fr;
-        } else {
+        //console.log('exec from index: ', 'redirect: ', fr.redirect, 'asset: ', fr.asset, 'policy :', fr.pass);
+        if (fr.asset) {
+            AssetHandler.serve(fr.req, fr.res, assetsFolderName);
             return fr;
         }
+
+        if (!fr.pass) {
+            ErrorHandler.policyError(fr.req, fr.res);
+            return fr;
+        }
+        return fr;
     });
 }
 
 export { Server, FinalRequestObject, IncomingObject } from './server';
-//export { exportPolicies } from './exporters/export-policies';
-//export { exportRoutes } from './exporters/export-routes';
+export { AssetHandler } from './asset-handler';
 export { ErrorHandler } from './handlers/errors-handler';
 export { Request, RequestExtractor, RequestResponse, MatchedRequest } from './request';
 export { Response, ResponseLoader } from './response';

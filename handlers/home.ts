@@ -16,14 +16,7 @@ export class HomeHandler {
     }
 
     static post(req: Request, res: Response): void {
-        //console.log(inspect(req, true, 5, true));
-        let sub: Subscription = req.body.subscribe(data => {
-            res.json(data);
-        },
-        () => {
-            sub.unsubscribe();
-        },
-        (err) => console.log(err));
+        res.json(req.body);
     }
 
     static getById(req: Request, res: Response): void {

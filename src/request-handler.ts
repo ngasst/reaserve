@@ -9,11 +9,8 @@ export class RequestHandler {
     }
 
     static handle(fr: FinalRequestObject): void {
-        let pass: boolean = ((!fr.asset || typeof fr.asset === 'undefined') && fr.pass);
-        if (pass) {
-            fr.route.handler(fr.req, fr.res);
-            
-        }
+            if (!fr.asset && fr.pass)
+                fr.route.handler(fr.req, fr.res);
     }
 
 }

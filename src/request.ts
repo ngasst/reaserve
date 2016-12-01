@@ -14,14 +14,12 @@ export class RequestExtractor {
         this.verb = this.request.method;
     }
 
-    static extract(req: Request) {
-        //params
-        if (req.method.toUpperCase() === ('GET' || 'DELETE')) {
-            let request: Request = req;
-            request.params = this.getParams(req);
-            return request;
-        }
+    static extractBody(rs: RequestResponse): Observable<RequestResponse> {
+        return this.getJSON(rs.req)
+                .map(data => Object.assign(rs, {req: Object.assign(rs.req, {body: data})}));
+    }
 
+    static extract(req: Request) {
         //body
         if (req.method.toUpperCase() === ('POST' || 'UPDATE' || 'DELETE' || 'PATCH')) {
             let request: Request = req;
@@ -29,9 +27,14 @@ export class RequestExtractor {
             return request;
         }
 
+        //params
+        if (req.method.toUpperCase() === ('GET' || 'DELETE')) {
+            let request: Request = req;
+            request.params = this.getParams(req);
+            return request;
+        }
     }
-
-    private static getJSON(req: Request): any {
+    private static getJSON(req: Request): Observable<any> {
         return Observable
             .fromEvent(req, 'data')
             .buffer(Observable.fromEvent(req, 'end'))

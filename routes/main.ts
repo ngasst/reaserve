@@ -16,6 +16,12 @@ export const routes: Route[] = [
         policies: ['main']
     },
     {
+        path: '/api/search',
+        verb: 'POST',
+        handler: HomeHandler.post,
+        policies: ['main']
+    },
+    {
         path: '/:id',
         verb: 'GET',
         handler: HomeHandler.getById,
@@ -23,6 +29,13 @@ export const routes: Route[] = [
     },
     {
         path: '/:id/:username',
+        verb: 'GET',
+        handler: HomeHandler.getByIdAndUsername,
+        policies: []
+    }
+    ,
+    {
+        path: '/bobo/:id/:username',
         verb: 'GET',
         handler: HomeHandler.getByIdAndUsername,
         policies: []
