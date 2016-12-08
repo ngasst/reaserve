@@ -68,7 +68,7 @@ module.exports =
 /************************************************************************/
 /******/ ({
 
-/***/ 0:
+/***/ 1:
 /***/ function(module, exports) {
 
 module.exports = require("fs-extra");
@@ -88,7 +88,7 @@ module.exports = require("path");
 "use strict";
 "use strict";
 var Path = __webpack_require__(2);
-var fs_extra_1 = __webpack_require__(0);
+var fs_extra_1 = __webpack_require__(1);
 function exportPolicies(folderPath) {
     var path = Path.resolve(folderPath);
     getFiles(path)

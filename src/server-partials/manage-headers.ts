@@ -12,9 +12,15 @@ export function manageHeaders(
     let response: Response = r.res;
         if ((typeof allowedOrigins === 'array' && allowedOrigins.length > 0)) {
             response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
+            response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept');
+            response.setHeader('Content-Type', 'application/json');
         } else {
             if (typeof allowedOrigins === 'string' && allowedOrigins.length > 0) {
                 response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
+                response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+                response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept');
+                response.setHeader('Content-Type', 'application/json');
             }
         }
 
