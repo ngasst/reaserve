@@ -99,19 +99,16 @@ var errors_handler_1 = __webpack_require__(5);
 var server_partials_1 = __webpack_require__(9);
 var asset_handler_1 = __webpack_require__(4);
 var server_partials_2 = __webpack_require__(9);
-function createServer(port, routes, policies, rerouteUnmatched, allowedOrigins, allowedMethods, allowedHeaders, additionalHeaders, renderEngine, assetsFolderName) {
+function createServer(port, routes, policies, rerouteUnmatched, cors, renderEngine, assetsFolderName) {
     if (rerouteUnmatched === void 0) { rerouteUnmatched = false; }
-    if (allowedOrigins === void 0) { allowedOrigins = ''; }
-    if (allowedMethods === void 0) { allowedMethods = []; }
-    if (allowedHeaders === void 0) { allowedHeaders = []; }
-    if (additionalHeaders === void 0) { additionalHeaders = []; }
+    if (cors === void 0) { cors = undefined; }
     if (renderEngine === void 0) { renderEngine = 'default'; }
     if (assetsFolderName === void 0) { assetsFolderName = 'assets'; }
     var server = new server_1.Server();
     var evaluator = new policy_1.PolicyEvaluator(policies);
     return server.server(port)
         .map(function (r) {
-        return server_partials_1.manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders);
+        return server_partials_1.manageHeaders(r, renderEngine, cors);
     })
         .map(function (r) {
         return server_partials_1.manageAssets(r);
@@ -171,7 +168,7 @@ var response_2 = __webpack_require__(8);
 exports.ResponseLoader = response_2.ResponseLoader;
 var request_handler_1 = __webpack_require__(11);
 exports.RequestHandler = request_handler_1.RequestHandler;
-var router_1 = __webpack_require__(13);
+var router_1 = __webpack_require__(12);
 exports.Router = router_1.Router;
 var policy_2 = __webpack_require__(6);
 exports.PolicyEvaluator = policy_2.PolicyEvaluator;
@@ -185,7 +182,7 @@ exports.PolicyEvaluator = policy_2.PolicyEvaluator;
 "use strict";
 var fs_extra_1 = __webpack_require__(1);
 var Path = __webpack_require__(2);
-var mime = __webpack_require__(20);
+var mime = __webpack_require__(19);
 var AssetHandler = (function () {
     function AssetHandler() {
     }
@@ -250,7 +247,7 @@ exports.PolicyEvaluator = PolicyEvaluator;
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(0);
-var url_1 = __webpack_require__(21);
+var url_1 = __webpack_require__(20);
 var RequestExtractor = (function () {
     function RequestExtractor(req) {
         this.request = req;
@@ -352,10 +349,10 @@ exports.ResponseLoader = ResponseLoader;
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
-__export(__webpack_require__(15));
 __export(__webpack_require__(14));
-__export(__webpack_require__(17));
+__export(__webpack_require__(13));
 __export(__webpack_require__(16));
+__export(__webpack_require__(15));
 
 
 /***/ },
@@ -365,8 +362,8 @@ __export(__webpack_require__(16));
 "use strict";
 "use strict";
 var rxjs_1 = __webpack_require__(0);
-var http_1 = __webpack_require__(18);
-var https_1 = __webpack_require__(19);
+var http_1 = __webpack_require__(17);
+var https_1 = __webpack_require__(18);
 var Server = (function () {
     function Server(protocol) {
         if (protocol === void 0) { protocol = 'http'; }
@@ -427,18 +424,6 @@ exports.RequestHandler = RequestHandler;
 
 "use strict";
 "use strict";
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
-__export(__webpack_require__(3));
-
-
-/***/ },
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-"use strict";
 var rxjs_1 = __webpack_require__(0);
 var Router = (function () {
     function Router(routes) {
@@ -462,7 +447,7 @@ exports.Router = Router;
 
 
 /***/ },
-/* 14 */
+/* 13 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -478,42 +463,37 @@ exports.manageAssets = manageAssets;
 
 
 /***/ },
-/* 15 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
 var fs_extra_1 = __webpack_require__(1);
-function manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders) {
+function manageHeaders(r, renderEngine, cors) {
     var response = r.res;
-    if ((typeof allowedOrigins === 'array' && allowedOrigins.length > 0)) {
-        response.setHeader('Access-Control-Allow-Origin', allowedOrigins.join(','));
-        response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept');
-        response.setHeader('Content-Type', 'application/json');
+    if (typeof cors !== 'undefined') {
+        //set cors headers
+        //origins
+        (typeof cors.origins === 'array') ?
+            response.setHeader('Access-Control-Allow-Origin', cors.origins.join(', ')) :
+            response.setHeader('Access-Control-Allow-Origin', cors.origins);
+        //request methods
+        (typeof cors.requestMethods === 'array') ?
+            response.setHeader('Access-Control-Allow-Request-Method', cors.requestMethods.join(', ')) :
+            response.setHeader('Access-Control-Allow-Request-Method', cors.requestMethods);
+        //methods
+        (typeof cors.methods === 'array') ?
+            response.setHeader('Access-Control-Allow-Methods', cors.methods.join(', ')) :
+            response.setHeader('Access-Control-Allow-Methods', cors.methods);
+        //methods
+        (typeof cors.headers === 'array') ?
+            response.setHeader('Access-Control-Allow-Headers', cors.headers.join(', ')) :
+            response.setHeader('Access-Control-Allow-Headers', cors.headers);
     }
-    else {
-        if (typeof allowedOrigins === 'string' && allowedOrigins.length > 0) {
-            response.setHeader('Access-Control-Allow-Origin', allowedOrigins);
-            response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept');
-            response.setHeader('Content-Type', 'application/json');
-        }
-    }
-    if ((allowedMethods.length > 0))
-        response.setHeader('Access-Control-Allow-Methods', allowedMethods.join(','));
-    if ((allowedHeaders.length > 0))
-        response.setHeader('Access-Control-Allow-Headers', allowedHeaders.join(','));
     if (r.req.method === 'OPTIONS') {
-        console.log(r.req.method);
-        console.log(r.req.headers);
         r.res.writeHead(200);
         r.res.end();
-    }
-    if (additionalHeaders.length > 0) {
-        additionalHeaders.forEach(function (h) {
-            response.setHeader(h.key, h.value);
-        });
+        return;
     }
     //give the response the ability to send back responses
     response.sendFile = function (path, ct, size) {
@@ -554,7 +534,7 @@ exports.manageHeaders = manageHeaders;
 
 
 /***/ },
-/* 16 */
+/* 15 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -597,7 +577,7 @@ exports.manageRequestRouteRemapping = manageRequestRouteRemapping;
 
 
 /***/ },
-/* 17 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -623,28 +603,38 @@ exports.manageRouting = manageRouting;
 
 
 /***/ },
-/* 18 */
+/* 17 */
 /***/ function(module, exports) {
 
 module.exports = require("http");
 
 /***/ },
-/* 19 */
+/* 18 */
 /***/ function(module, exports) {
 
 module.exports = require("https");
 
 /***/ },
-/* 20 */
+/* 19 */
 /***/ function(module, exports) {
 
 module.exports = require("mime");
 
 /***/ },
-/* 21 */
+/* 20 */
 /***/ function(module, exports) {
 
 module.exports = require("url");
+
+/***/ },
+/* 21 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+"use strict";
+var main_1 = __webpack_require__(24);
+exports.policies = [].concat.apply([], main_1.policies);
+
 
 /***/ },
 /* 22 */
@@ -653,7 +643,7 @@ module.exports = require("url");
 "use strict";
 "use strict";
 var main_1 = __webpack_require__(25);
-exports.policies = [].concat.apply([], main_1.policies);
+exports.routes = [].concat.apply([], main_1.routes);
 
 
 /***/ },
@@ -662,18 +652,8 @@ exports.policies = [].concat.apply([], main_1.policies);
 
 "use strict";
 "use strict";
-var main_1 = __webpack_require__(26);
-exports.routes = [].concat.apply([], main_1.routes);
-
-
-/***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-"use strict";
 var fs_extra_1 = __webpack_require__(1);
-var pug_1 = __webpack_require__(27);
+var pug_1 = __webpack_require__(26);
 var HomeHandler = (function () {
     function HomeHandler() {
     }
@@ -703,7 +683,7 @@ exports.HomeHandler = HomeHandler;
 
 
 /***/ },
-/* 25 */
+/* 24 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -717,12 +697,12 @@ exports.policies = [
 
 
 /***/ },
-/* 26 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 "use strict";
-var home_1 = __webpack_require__(24);
+var home_1 = __webpack_require__(23);
 exports.routes = [
     {
         path: '/',
@@ -764,12 +744,13 @@ exports.routes = [
 
 
 /***/ },
-/* 27 */
+/* 26 */
 /***/ function(module, exports) {
 
 module.exports = require("pug");
 
 /***/ },
+/* 27 */,
 /* 28 */,
 /* 29 */,
 /* 30 */
@@ -777,13 +758,18 @@ module.exports = require("pug");
 
 "use strict";
 "use strict";
-var routes_1 = __webpack_require__(23);
-var policies_1 = __webpack_require__(22);
-var request_handler_1 = __webpack_require__(11);
-var index_1 = __webpack_require__(12);
-index_1.createServer(3000, routes_1.routes, policies_1.policies, undefined, '10.*')
+var src_1 = __webpack_require__(3);
+var routes_1 = __webpack_require__(22);
+var policies_1 = __webpack_require__(21);
+var cors = {
+    origins: '*',
+    requestMethods: '*',
+    methods: 'OPTIONS, GET',
+    headers: 'origin' // or array of allowed headers e.g: ['authorization', 'content-type'] 
+};
+src_1.createServer(5000, routes_1.routes, policies_1.policies, undefined, cors)
     .subscribe(function (fr) {
-    request_handler_1.RequestHandler.handle(fr);
+    src_1.RequestHandler.handle(fr);
 });
 
 

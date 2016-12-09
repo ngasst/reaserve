@@ -16,10 +16,7 @@ export function createServer(
     port: number, routes: Route[],
     policies: Policy[],
     rerouteUnmatched: boolean = false,
-    allowedOrigins: string[]|string = '',
-    allowedMethods: string[] = [],
-    allowedHeaders: string[] = [],
-    additionalHeaders: Header[] = [],
+    cors: CorsOptions = undefined,
     renderEngine: ((path: string, options?: any, done?: Function) => any) | string = 'default',
     assetsFolderName: string = 'assets'
     ): Observable<FinalRequestObject> {
@@ -28,7 +25,7 @@ export function createServer(
     
     return server.server(port)
     .map((r: RequestResponse) => {
-        return manageHeaders(r, renderEngine, allowedMethods, allowedHeaders, allowedOrigins, additionalHeaders);
+        return manageHeaders(r, renderEngine, cors);
     })
     .map((r: RequestResponse) => {
         return manageAssets(r);
@@ -104,4 +101,10 @@ export { Policy, PolicyEvaluator } from './policy';
 export interface Header {
     key: string;
     value: string | string[];
+}
+export interface CorsOptions {
+    origins: string | string[];
+    requestMethods: string | string[];
+    methods: string[];
+    headers: string | string[];
 }
