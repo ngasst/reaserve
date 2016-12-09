@@ -485,10 +485,18 @@ function manageHeaders(r, renderEngine, cors) {
         (typeof cors.methods === 'array') ?
             response.setHeader('Access-Control-Allow-Methods', cors.methods.join(', ')) :
             response.setHeader('Access-Control-Allow-Methods', cors.methods);
-        //methods
-        (typeof cors.headers === 'array') ?
-            response.setHeader('Access-Control-Allow-Headers', cors.headers.join(', ')) :
-            response.setHeader('Access-Control-Allow-Headers', cors.headers);
+        //headers
+        if (typeof cors.headers === 'array') {
+            response.setHeader('Access-Control-Allow-Headers', cors.headers.join(', '));
+        }
+        else {
+            if (typeof cors.headers === 'string' && cors.headers === 'origin') {
+                response.setHeader('Access-Control-Allow-Headers', r.req.headers.origin);
+            }
+            else {
+                response.setHeader('Access-Control-Allow-Headers', cors.headers);
+            }
+        }
     }
     if (r.req.method === 'OPTIONS') {
         r.res.writeHead(200);

@@ -485,10 +485,18 @@ function manageHeaders(r, renderEngine, cors) {
         (typeof cors.methods === 'array') ?
             response.setHeader('Access-Control-Allow-Methods', cors.methods.join(', ')) :
             response.setHeader('Access-Control-Allow-Methods', cors.methods);
-        //methods
-        (typeof cors.headers === 'array') ?
-            response.setHeader('Access-Control-Allow-Headers', cors.headers.join(', ')) :
-            response.setHeader('Access-Control-Allow-Headers', cors.headers);
+        //headers
+        if (typeof cors.headers === 'array') {
+            response.setHeader('Access-Control-Allow-Headers', cors.headers.join(', '));
+        }
+        else {
+            if (typeof cors.headers === 'string' && cors.headers === 'origin') {
+                response.setHeader('Access-Control-Allow-Headers', r.req.headers.origin);
+            }
+            else {
+                response.setHeader('Access-Control-Allow-Headers', cors.headers);
+            }
+        }
     }
     if (r.req.method === 'OPTIONS') {
         r.res.writeHead(200);
@@ -764,7 +772,7 @@ var policies_1 = __webpack_require__(21);
 var cors = {
     origins: '*',
     requestMethods: '*',
-    methods: 'OPTIONS, GET',
+    methods: ['OPTIONS', 'GET'],
     headers: 'origin' // or array of allowed headers e.g: ['authorization', 'content-type'] 
 };
 src_1.createServer(5000, routes_1.routes, policies_1.policies, undefined, cors)

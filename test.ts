@@ -23,7 +23,7 @@ import { policies } from './policies';
 let cors: CorsOptions = {
     origins: '*',
     requestMethods: '*',
-    methods: 'OPTIONS, GET',
+    methods: ['OPTIONS', 'GET'],
     headers: 'origin' // or array of allowed headers e.g: ['authorization', 'content-type'] 
 }
 
